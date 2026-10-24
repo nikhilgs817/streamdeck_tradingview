@@ -1,0 +1,446 @@
+{
+  "id": "tradingview",
+  "folder": "TRADINGVIEW",
+  "repo": "streamdeck_tradingview",
+  "app": "TradingView",
+  "glyph": "tvlogo",
+  "theme": "tradingview",
+  "reference": "https://www.tradingview.com/support/solutions/43000476436-keyboard-shortcuts/",
+  "commands": [
+    {
+      "id": "back",
+      "name": "Back",
+      "glyph": "back",
+      "theme": "tradingview",
+      "description": "Return to the main Stream Deck keys.",
+      "operation": "back"
+    },
+    {
+      "id": "buy",
+      "name": "Buy",
+      "glyph": "tvbuy",
+      "theme": "tradingview",
+      "trading": "submit",
+      "description": "Send your TradingView Buy hotkey once (TradingView default: Shift+B) using the order panel defaults.",
+      "setup": "Enter Shift+B (TradingView's Buy shortcut) in this key's settings. A broker must be connected in TradingView; with instant orders on, the order is placed immediately. Test with Paper Trading first. Quantity, order type and confirmations are controlled by TradingView.",
+      "suggest": "Shift+B"
+    },
+    {
+      "id": "sell",
+      "name": "Sell",
+      "glyph": "tvsell",
+      "theme": "tradingview",
+      "trading": "submit",
+      "description": "Send your TradingView Sell hotkey once (TradingView default: Shift+S) using the order panel defaults.",
+      "setup": "Enter Shift+S (TradingView's Sell shortcut) in this key's settings. A broker must be connected in TradingView; test with Paper Trading first. Quantity, order type and confirmations are controlled by TradingView.",
+      "suggest": "Shift+S"
+    },
+    {
+      "id": "alert",
+      "name": "Alert",
+      "glyph": "alerts",
+      "theme": "tradingview",
+      "shortcut": "Alt+A",
+      "description": "Create an alert on the active chart."
+    },
+    {
+      "id": "snapshot",
+      "name": "Snapshot",
+      "glyph": "snapshot",
+      "theme": "tradingview",
+      "shortcut": "Alt+S",
+      "description": "Take a chart snapshot."
+    },
+    {
+      "id": "symbol",
+      "name": "Symbol",
+      "glyph": "search",
+      "theme": "tradingview",
+      "shortcut": "Ctrl+K",
+      "description": "Open TradingView quick search to change the symbol."
+    },
+    {
+      "id": "indicators",
+      "name": "Indicators",
+      "glyph": "indicators",
+      "theme": "tradingview",
+      "shortcut": "/",
+      "description": "Open the Indicators, metrics and strategies dialog."
+    },
+    {
+      "id": "watchadd",
+      "name": "Watchlist +",
+      "glyph": "addwatch",
+      "theme": "tradingview",
+      "shortcut": "Alt+W",
+      "description": "Add the chart symbol to your watchlist."
+    },
+    {
+      "id": "trendline",
+      "name": "Trend Line",
+      "glyph": "trendline",
+      "theme": "tradingview",
+      "shortcut": "Alt+T",
+      "description": "Pick the Trend Line drawing tool."
+    },
+    {
+      "id": "hline",
+      "name": "Horiz. Line",
+      "glyph": "hline",
+      "theme": "tradingview",
+      "shortcut": "Alt+H",
+      "description": "Draw a horizontal line at the cursor price."
+    },
+    {
+      "id": "vline",
+      "name": "Vert. Line",
+      "glyph": "vline",
+      "theme": "tradingview",
+      "shortcut": "Alt+V",
+      "description": "Draw a vertical line at the cursor time."
+    },
+    {
+      "id": "crossline",
+      "name": "Cross Line",
+      "glyph": "crossline",
+      "theme": "tradingview",
+      "shortcut": "Alt+C",
+      "description": "Draw a cross line at the cursor."
+    },
+    {
+      "id": "fib",
+      "name": "Fib Retrace",
+      "glyph": "fib",
+      "theme": "tradingview",
+      "shortcut": "Alt+F",
+      "description": "Pick the Fib Retracement drawing tool."
+    },
+    {
+      "id": "note",
+      "name": "Note",
+      "glyph": "textnote",
+      "theme": "tradingview",
+      "shortcut": "Alt+N",
+      "description": "Add a text note for the symbol."
+    },
+    {
+      "id": "logscale",
+      "name": "Log Scale",
+      "glyph": "logscale",
+      "theme": "tradingview",
+      "shortcut": "Alt+L",
+      "description": "Toggle logarithmic price scale."
+    },
+    {
+      "id": "percentscale",
+      "name": "% Scale",
+      "glyph": "percentscale",
+      "theme": "tradingview",
+      "shortcut": "Alt+P",
+      "description": "Toggle percent price scale."
+    },
+    {
+      "id": "invert",
+      "name": "Invert",
+      "glyph": "invert",
+      "theme": "tradingview",
+      "shortcut": "Alt+I",
+      "description": "Invert the price scale."
+    },
+    {
+      "id": "gotodate",
+      "name": "Go To Date",
+      "glyph": "gotodate",
+      "theme": "tradingview",
+      "shortcut": "Alt+G",
+      "description": "Jump the chart to a date."
+    },
+    {
+      "id": "maximize",
+      "name": "Maximize",
+      "glyph": "maximize",
+      "theme": "tradingview",
+      "shortcut": "Alt+Enter",
+      "description": "Toggle maximize for the active chart.",
+      "allowEnter": true
+    },
+    {
+      "id": "savelayout",
+      "name": "Save Layout",
+      "glyph": "savelayout",
+      "theme": "tradingview",
+      "shortcut": "Ctrl+S",
+      "description": "Save the chart layout."
+    },
+    {
+      "id": "loadlayout",
+      "name": "Load Layout",
+      "glyph": "layouts",
+      "theme": "tradingview",
+      "shortcut": ".",
+      "description": "Open the Load layout dialog."
+    },
+    {
+      "id": "resetchart",
+      "name": "Reset Chart",
+      "glyph": "resetchart",
+      "theme": "tradingview",
+      "shortcut": "Alt+R",
+      "description": "Reset the chart view."
+    },
+    {
+      "id": "undo",
+      "name": "Undo",
+      "glyph": "undo",
+      "theme": "tradingview",
+      "shortcut": "Ctrl+Z",
+      "description": "Undo the last chart change."
+    },
+    {
+      "id": "redo",
+      "name": "Redo",
+      "glyph": "redo",
+      "theme": "tradingview",
+      "shortcut": "Ctrl+Y",
+      "description": "Redo the last undone chart change."
+    },
+    {
+      "id": "barback",
+      "name": "Bar Back",
+      "glyph": "barleft",
+      "theme": "tradingview",
+      "shortcut": "Left",
+      "description": "Scroll the chart one bar back."
+    },
+    {
+      "id": "barfwd",
+      "name": "Bar Fwd",
+      "glyph": "barright",
+      "theme": "tradingview",
+      "shortcut": "Right",
+      "description": "Scroll the chart one bar forward."
+    },
+    {
+      "id": "i1",
+      "name": "1 Min",
+      "glyph": "i1",
+      "theme": "tradingview",
+      "shortcut": "Escape 1 Enter",
+      "description": "Switch the active chart to 1 min bars.",
+      "allowEnter": true
+    },
+    {
+      "id": "i2",
+      "name": "2 Min",
+      "glyph": "i2",
+      "theme": "tradingview",
+      "shortcut": "Escape 2 Enter",
+      "description": "Switch the active chart to 2 min bars.",
+      "allowEnter": true
+    },
+    {
+      "id": "i5",
+      "name": "5 Min",
+      "glyph": "i5",
+      "theme": "tradingview",
+      "shortcut": "Escape 5 Enter",
+      "description": "Switch the active chart to 5 min bars.",
+      "allowEnter": true
+    },
+    {
+      "id": "i15",
+      "name": "15 Min",
+      "glyph": "i15",
+      "theme": "tradingview",
+      "shortcut": "Escape 1 5 Enter",
+      "description": "Switch the active chart to 15 min bars.",
+      "allowEnter": true
+    },
+    {
+      "id": "i60",
+      "name": "1 Hour",
+      "glyph": "i1h",
+      "theme": "tradingview",
+      "shortcut": "Escape 6 0 Enter",
+      "description": "Switch the active chart to 1 hour bars.",
+      "allowEnter": true
+    },
+    {
+      "id": "i240",
+      "name": "4 Hour",
+      "glyph": "i4h",
+      "theme": "tradingview",
+      "shortcut": "Escape 2 4 0 Enter",
+      "description": "Switch the active chart to 4 hour bars.",
+      "allowEnter": true
+    },
+    {
+      "id": "iday",
+      "name": "Daily",
+      "glyph": "iD",
+      "theme": "tradingview",
+      "shortcut": "Escape 1 D Enter",
+      "description": "Switch the active chart to daily bars.",
+      "allowEnter": true
+    },
+    {
+      "id": "iweek",
+      "name": "Weekly",
+      "glyph": "iW",
+      "theme": "tradingview",
+      "shortcut": "Escape 1 W Enter",
+      "description": "Switch the active chart to weekly bars.",
+      "allowEnter": true
+    },
+    {
+      "id": "focus",
+      "name": "Focus App",
+      "glyph": "focus",
+      "theme": "tradingview",
+      "description": "Bring the TradingView window to the front.",
+      "operation": "focus"
+    },
+    {
+      "id": "tradepage",
+      "name": "‹ Trade",
+      "glyph": "pagetrade",
+      "theme": "tradingview",
+      "description": "Show the Trade Stream Deck page.",
+      "operation": "page",
+      "page": 0
+    },
+    {
+      "id": "drawpage",
+      "name": "Draw ›",
+      "glyph": "pagedraw",
+      "theme": "tradingview",
+      "description": "Show the Draw Stream Deck page.",
+      "operation": "page",
+      "page": 1
+    },
+    {
+      "id": "timepage",
+      "name": "Time ›",
+      "glyph": "pagetime",
+      "theme": "tradingview",
+      "description": "Show the Time Stream Deck page.",
+      "operation": "page",
+      "page": 2
+    },
+    {
+      "id": "shortcut",
+      "name": "Custom shortcut",
+      "glyph": "shortcut",
+      "theme": "tradingview",
+      "description": "Set your own TradingView shortcut, for example Alt+Shift+R.",
+      "hidden": false
+    }
+  ],
+  "uuid": "com.dailyops.tradingview.v1",
+  "name": "TradingView Controls",
+  "version": "1.0.0.0",
+  "profile": "profiles/tradingview",
+  "selector": {
+    "names": [
+      "TradingView"
+    ],
+    "path": "[\\\\/]TradingView"
+  },
+  "trading": true,
+  "references": [
+    "https://www.tradingview.com/support/solutions/43000476436-keyboard-shortcuts/",
+    "https://www.tradingview.com/support/folders/43000587405-trading-panel/"
+  ],
+  "layout": {
+    "0,0": "back",
+    "1,0": "buy",
+    "2,0": "sell",
+    "3,0": "alert",
+    "4,0": "snapshot",
+    "0,1": "symbol",
+    "1,1": "indicators",
+    "2,1": "watchadd",
+    "3,1": "trendline",
+    "4,1": "hline",
+    "0,2": "drawpage",
+    "1,2": "timepage",
+    "2,2": "undo",
+    "3,2": "resetchart",
+    "4,2": "focus"
+  },
+  "design": {
+    "id": "tradingview",
+    "name": "TradingView",
+    "styleName": "TradingView Dark",
+    "light": true,
+    "background": "#131722",
+    "surface": "#1E222D",
+    "ink": "#D1D4DC",
+    "accent": "#2962FF",
+    "border": "#2A2E39",
+    "radius": 6
+  },
+  "pages": [
+    {
+      "name": "TRADE · chart",
+      "layout": {
+        "0,0": "back",
+        "1,0": "buy",
+        "2,0": "sell",
+        "3,0": "alert",
+        "4,0": "snapshot",
+        "0,1": "symbol",
+        "1,1": "indicators",
+        "2,1": "watchadd",
+        "3,1": "trendline",
+        "4,1": "hline",
+        "0,2": "drawpage",
+        "1,2": "timepage",
+        "2,2": "undo",
+        "3,2": "resetchart",
+        "4,2": "focus"
+      }
+    },
+    {
+      "name": "DRAW · analyze",
+      "layout": {
+        "0,0": "tradepage",
+        "1,0": "trendline",
+        "2,0": "hline",
+        "3,0": "vline",
+        "4,0": "crossline",
+        "0,1": "fib",
+        "1,1": "note",
+        "2,1": "logscale",
+        "3,1": "percentscale",
+        "4,1": "invert",
+        "0,2": "gotodate",
+        "1,2": "maximize",
+        "2,2": "savelayout",
+        "3,2": "loadlayout",
+        "4,2": "timepage"
+      }
+    },
+    {
+      "name": "TIME · intervals",
+      "layout": {
+        "0,0": "tradepage",
+        "1,0": "i1",
+        "2,0": "i2",
+        "3,0": "i5",
+        "4,0": "i15",
+        "0,1": "i60",
+        "1,1": "i240",
+        "2,1": "iday",
+        "3,1": "iweek",
+        "4,1": "gotodate",
+        "0,2": "barback",
+        "1,2": "barfwd",
+        "2,2": "undo",
+        "3,2": "redo",
+        "4,2": "focus"
+      }
+    }
+  ],
+  "fastKeys": true
+}
