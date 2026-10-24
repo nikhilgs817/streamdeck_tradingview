@@ -54,8 +54,8 @@ try{
   const before=commands().length,switches=received.filter(m=>m.event==='switchToProfile').length;
   if(c.holdMs){event('keyDown',c,binding);await wait(()=>commands().length>before);event('keyUp',c,binding);}else press(c,binding);
   if(c.operation==='back'||c.operation==='page'){
-   await wait(()=>received.filter(m=>m.event==='switchToProfile').length>switches);
-   if(c.operation==='page')check(c.id+' switches to its zero-based page',received.filter(m=>m.event==='switchToProfile').at(-1).payload.page===c.page);
+   await wait(()=>received.filter(m=>m.event==='switchToProfile').length>(c.operation==='page'?switches+1:switches));
+   if(c.operation==='page'){const sw=received.filter(m=>m.event==='switchToProfile').slice(switches);check(c.id+' leaves to the main keys before opening its page',!sw[0].payload.profile);check(c.id+' switches to its zero-based page',sw.at(-1).payload.page===c.page);}
   }else{
    await wait(()=>commands().length>before);const sent=commands().at(-1);
    if(c.operation==='url')check(c.id+' opens the exact configured URL',sent.command==='url'&&sent.args[0]===(binding.destination||c.url));

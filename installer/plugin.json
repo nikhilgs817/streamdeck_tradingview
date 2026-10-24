@@ -4,12 +4,12 @@
   "PluginId": "com.dailyops.tradingview.v1",
   "PluginFolder": "tradingview",
   "Profile": "profiles/tradingview",
-  "Version": "1.0.0.0",
+  "Version": "1.0.1.0",
   "Repository": "nikhilgs817/streamdeck_tradingview",
   "Toolkit": {
     "Version": "2.6.1.0",
     "Url": "https://github.com/nikhilgs817/windows_daily_toolkit/releases/download/v2.6.1/WindowsDailyToolkit-Installer-2.6.1.0.zip",
     "Sha256": "c2e1fd3e6e2671b16b7f4a70d54913596569164c5d89cf305e521d60310621c3"
   },
-  "PackageSha256": "0091a3d1bf288b34404d048b376ed3ee0f6235f304c5230b4485f4b5ba0ccf9d"
+  "PackageSha256": "dc893c432b8151f33e2e3eada9fd6dc6fb27a9a6b4d64785d242fb688abf6564"
 }

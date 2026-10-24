@@ -338,7 +338,7 @@
   ],
   "uuid": "com.dailyops.tradingview.v1",
   "name": "TradingView Controls",
-  "version": "1.0.0.0",
+  "version": "1.0.1.0",
   "profile": "profiles/tradingview",
   "selector": {
     "names": [

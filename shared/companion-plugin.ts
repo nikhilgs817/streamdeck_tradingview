@@ -56,12 +56,20 @@ export async function bootCompanion(config: CompanionConfig): Promise<void> {
 	let bridge: CompanionConnection | undefined;
 	const visible = new Map<string, number>();
 	const localShow = async (device: string) => { await streamDeck.profiles.switchToProfile(device, config.profile, 0); };
-	const localBack = async (device: string) => { await streamDeck.profiles.switchToProfile(device); };
+	const localBack = async (device: string) => { await streamDeck.profiles.switchToProfile(device); streamDeck.logger.info(`back on ${device}`); };
 	const show = async (device: string) => { if (bridge?.connected) await bridge.request("show", device); else await localShow(device); };
 	// Devices where Windows Daily Toolkit handed the deck to this plugin. If the user opened these keys some other way
 	// (picked the profile in Stream Deck, a native Switch Profile key…), Back must not wait for the Toolkit: it simply
 	// returns to the previous profile.
 	const viaToolkit = new Set<string>();
+	// Stream Deck's "previous profile" is overwritten by every switch the plugin makes, including page changes inside
+	// this profile. Leave to the previous profile first, then open the page, so Back still returns to the main keys.
+	const showPage = async (device: string, page: number) => {
+		await localBack(device);
+		await new Promise((r) => setTimeout(r, 60));
+		await streamDeck.profiles.switchToProfile(device, config.profile, page);
+		streamDeck.logger.info(`page ${page} on ${device}`);
+	};
 	const back = async (device: string) => {
 		if (bridge?.connected && viaToolkit.has(device)) { try { await bridge.request("back", device); return; } catch { /* fall back below */ } }
 		viaToolkit.delete(device);
@@ -106,7 +114,7 @@ export async function bootCompanion(config: CompanionConfig): Promise<void> {
 						return;
 					}
 					if (definition.operation === "back") { await back(ev.action.device.id); return; }
-					if (definition.operation === "page") { await streamDeck.profiles.switchToProfile(ev.action.device.id, config.profile, definition.page || 0); return; }
+					if (definition.operation === "page") { await showPage(ev.action.device.id, definition.page || 0); return; }
 					if (definition.operation === "applink") {
 						// Fixed in-app links from the plugin's own config (never from key settings), e.g. claude://claude.ai/new
 						const link = definition.link || "";

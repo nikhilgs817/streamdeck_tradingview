@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1
+
+- **Back fixed:** page keys (Draw ›, Time ›, ‹ Trade) no longer replace your main keys as the place Back returns to. Back and switching away from TradingView now return to your Default profile.
+
 ## 1.0.0
 
 - First release: TradingView Controls with Trade, Draw and Time pages (39 actions).
