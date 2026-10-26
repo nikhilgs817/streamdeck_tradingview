@@ -32,20 +32,27 @@ const readings = new Map<UsageSource, UsageReading>();
 const meterKeys = new Map<string, { source: UsageSource; repaint: () => Promise<void> }>();
 let meterTimer: NodeJS.Timeout | undefined;
 let lastUsageSummary = "";
+let signinNotified = false;
 async function refreshUsage(source: UsageSource): Promise<void> {
 	if (source === "codex") readings.set(source, readCodex());
 	else {
 		const blob = typeof globals.claudeUsageKey === "string" ? globals.claudeUsageKey : "";
 		let key: string | undefined;
 		if (blob) { const r = await ps.run("secret-unprotect", [blob, "claude-usage"]); if (r.status === "ok") key = r.message; }
-		if (!blob) streamDeck.logger.info("claude usage: no session key saved yet");
-		else if (!key) streamDeck.logger.warn("claude usage: saved key could not be decrypted on this PC");
+		if (blob && !key) streamDeck.logger.warn("claude usage: saved key could not be decrypted on this PC");
 		const lines: string[] = [];
 		setUsageLog((l) => lines.push(l));
 		const reading = await readClaude(key);
 		const summary = `claude usage: ${reading.ok ? "ok " + JSON.stringify(Object.fromEntries(Object.entries(reading.windows).map(([k, w]) => [k, w?.pct]))) : reading.reason + " - " + reading.message}`;
 		// Log details only when the outcome changes, so the 60 s refresh does not flood the log.
 		if (summary !== lastUsageSummary) { for (const l of lines) streamDeck.logger.info(l); streamDeck.logger.info(summary); lastUsageSummary = summary; }
+		// One Windows notification when a working key stops working (expired or signed out).
+		const before = readings.get(source);
+		if (!reading.ok && reading.reason === "signin" && before?.ok && !signinNotified) {
+			signinNotified = true;
+			void ps.run("notify", ["Claude usage keys need a new session key", "Press a Claude usage key on your Stream Deck to open claude.ai, then paste the new sessionKey in the key settings."]);
+		}
+		if (reading.ok) signinNotified = false;
 		readings.set(source, reading);
 		key = undefined;
 	}
@@ -119,7 +126,11 @@ export async function bootCompanion(config: CompanionConfig): Promise<void> {
 					if (definition.meter) {
 						await refreshUsage(definition.meter.source);
 						const r = readings.get(definition.meter.source);
-						if (r && !r.ok) await this.feedback(ev.action, { status: "miss", message: r.message }); else await ev.action.showOk();
+						if (r && !r.ok && definition.meter.source === "claude" && (r.reason === "signin" || r.reason === "setup")) {
+							// One press: open claude.ai so the sessionKey can be copied; the key's settings show the steps.
+							await ps.run("url", ["https://claude.ai/settings/usage"]);
+							await this.feedback(ev.action, { status: "miss", message: "Opened claude.ai - copy sessionKey (F12 > Application > Cookies) and paste it in this key's settings" });
+						} else if (r && !r.ok) await this.feedback(ev.action, { status: "miss", message: r.message }); else await ev.action.showOk();
 						return;
 					}
 					if (definition.operation === "back") { await back(ev.action.device.id); return; }
@@ -198,8 +209,8 @@ export async function bootCompanion(config: CompanionConfig): Promise<void> {
 				if (!value || value.length > 4096) { await streamDeck.ui.sendToPropertyInspector({ event: "meterStatus", message: "That doesn't look like a session key." }); return; }
 				const r = await ps.run("secret-protect", [value, "claude-usage"]);
 				if (r.status !== "ok") { await streamDeck.ui.sendToPropertyInspector({ event: "meterStatus", message: "The key could not be encrypted on this PC." }); return; }
-				globals.claudeUsageKey = r.message; message = "Saved (encrypted). Reading usage…";
-			} else delete globals.claudeUsageKey;
+				globals.claudeUsageKey = r.message; globals.claudeUsageKeySavedAt = new Date().toISOString(); message = "Saved (encrypted). Reading usage…";
+			} else { delete globals.claudeUsageKey; delete globals.claudeUsageKeySavedAt; }
 			await streamDeck.settings.setGlobalSettings({ ...globals } as never);
 			await streamDeck.ui.sendToPropertyInspector({ event: "meterStatus", message });
 			await refreshUsage("claude");

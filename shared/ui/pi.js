@@ -88,6 +88,7 @@
 				fill();
 			} else if (m.event === "didReceiveGlobalSettings" && m.payload) {
 				globalSettings = m.payload.settings || {};
+				{ const el = $("companionMeterSaved"); if (el) { const at = globalSettings.claudeUsageKeySavedAt ? new Date(globalSettings.claudeUsageKeySavedAt) : null; el.textContent = globalSettings.claudeUsageKey ? "Session key saved" + (at && !isNaN(at) ? " on " + at.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "") + ". If the key shows SIGN IN, press it to open claude.ai and paste a new one." : "No session key saved yet. Press the key to open claude.ai, then paste the sessionKey here."; } }
 				$("monitorOrder").value = globalSettings.monitorOrder === "left" || globalSettings.monitorOrder === "primary" ? globalSettings.monitorOrder : "windows";
 				$("autoFollow").checked = globalSettings.autoFollow !== false;
 				$("companionFollow").checked = globalSettings.autoFollow !== false;

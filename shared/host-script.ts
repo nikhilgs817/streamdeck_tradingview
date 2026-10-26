@@ -872,6 +872,19 @@ while ($true) {
 				$msg = $a[0]
 			}
 			'url' { Start-Process -FilePath $a[0]; $msg = $a[0] }
+			'notify' {
+				try {
+					[void][Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime]
+					[void][Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime]
+					$x = New-Object Windows.Data.Xml.Dom.XmlDocument
+					$x.LoadXml('<toast><visual><binding template="ToastGeneric"><text></text><text></text></binding></visual></toast>')
+					$tx = $x.GetElementsByTagName('text')
+					[void]$tx.Item(0).AppendChild($x.CreateTextNode([string]$a[0]))
+					[void]$tx.Item(1).AppendChild($x.CreateTextNode([string]$a[1]))
+					[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe').Show([Windows.UI.Notifications.ToastNotification]::new($x))
+					$msg = 'shown'
+				} catch { $status = 'miss'; $msg = 'Notification unavailable' }
+			}
 			'folder' {
 				$t = if ($a[0] -eq '::downloads') { Downloads-Path } else { X $a[0] }
 				if (Test-Path -LiteralPath $t -PathType Container) { Invoke-Item -LiteralPath $t; $msg = $t }
