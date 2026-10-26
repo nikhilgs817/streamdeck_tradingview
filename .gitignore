@@ -28,3 +28,4 @@ tools/*
 
 !tools/build-installer.mjs
 !tools/test-installer.ps1
+!tools/test-usage.mjs

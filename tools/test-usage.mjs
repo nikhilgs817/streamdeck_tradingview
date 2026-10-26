@@ -1,0 +1,37 @@
+// Usage-meter parsing and claude.ai request handling, with a fake fetch (no network, no real key).
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import assert from 'node:assert';
+import ts from 'typescript';
+mkdirSync('test-output', { recursive: true });
+const js = ts.transpileModule(readFileSync('shared/usage.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
+writeFileSync('test-output/usage.mjs', js);
+const { parseClaudeUsage, readClaude } = await import(new URL('../test-output/usage.mjs', import.meta.url));
+let n = 0; const check = (name, ok) => { assert.ok(ok, name); n++; };
+const soon = new Date(Date.now() + 3600e3).toISOString();
+let w = parseClaudeUsage({ five_hour: { utilization: 42, resets_at: soon }, seven_day: { utilization: 17.5, resets_at: soon } });
+check('reads top-level windows', w['5h'].pct === 42 && w['7d'].pct === 17.5 && w['5h'].resetsAt > Date.now());
+w = parseClaudeUsage({ five_hour: null, seven_day: { utilization: 8 } });
+check('an unused 5-hour window reads 0 %', w['5h'].pct === 0 && w['7d'].pct === 8);
+w = parseClaudeUsage({ limits: [{ kind: 'session', percent: 61, resets_at: soon }, { kind: 'weekly_all', percent: 23 }, { kind: 'weekly_scoped', percent: 90 }] });
+check('falls back to limits[] entries', w['5h'].pct === 61 && w['7d'].pct === 23);
+const res = (status, body) => ({ status, ok: status >= 200 && status < 300, text: async () => typeof body === 'string' ? body : JSON.stringify(body) });
+const calls = [];
+globalThis.fetch = async (url, opt) => {
+	calls.push(url); assert.ok(opt.headers.cookie === 'sessionKey=test-key');
+	if (url.endsWith('/organizations')) return res(200, [{ uuid: 'api-org', capabilities: ['api'] }, { uuid: 'team-org', capabilities: ['chat', 'claude_team'] }, { uuid: 'max-org', capabilities: ['chat', 'claude_max'] }]);
+	if (url.includes('/max-org/usage')) return res(200, { five_hour: { utilization: 33, resets_at: soon }, seven_day: { utilization: 12 } });
+	return res(403, { error: 'permission' });
+};
+let r = await readClaude('test-key');
+check('picks the subscription (Max) organization first', r.ok && r.windows['5h'].pct === 33 && calls[1].includes('max-org'));
+calls.length = 0; r = await readClaude('test-key');
+check('reuses the remembered organization', r.ok && calls.length === 1);
+globalThis.fetch = async (url) => url.endsWith('/organizations') ? res(403, { error: { type: 'permission_error', details: { error_code: 'account_session_invalid' } } }) : res(403, '');
+r = await readClaude('other-key');
+check('an invalid key asks to sign in again', !r.ok && r.reason === 'signin');
+globalThis.fetch = async () => res(403, '<!DOCTYPE html><html><title>Just a moment...</title>');
+r = await readClaude('third-key');
+check('a Cloudflare challenge is reported as blocked', !r.ok && r.reason === 'blocked');
+r = await readClaude(undefined);
+check('no key shows setup', !r.ok && r.reason === 'setup');
+console.log(`${n} usage checks passed`);

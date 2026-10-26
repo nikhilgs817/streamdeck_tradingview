@@ -8,7 +8,7 @@ import { shortcutToSendKeys } from "./shortcuts.js";
 import type { AppSelector } from "./companion-specs.js";
 import { TradingInput } from "./trading-input.js";
 import { ps } from "./ps.js";
-import { readClaude, readCodex, untilText, type UsageReading, type UsageSource, type UsageWindow } from "./usage.js";
+import { readClaude, readCodex, setUsageLog, untilText, type UsageReading, type UsageSource, type UsageWindow } from "./usage.js";
 import { meterKeySvg } from "./brands/brand-keys.js";
 import { THEMES, svgDataUri } from "./icons.js";
 export type CompanionCommand = { id: string; name: string; glyph: string; theme: string; description: string; shortcut?: string; allowEnter?: boolean; menu?: string[][]; choices?: { names: string[]; options: string[] }[]; operation?: "back" | "focus" | "url" | "page" | "applink"; url?: string; link?: string; page?: number; trading?: "submit" | "bracket" | "panel"; setup?: string; executionNote?: string; hidden?: boolean; holdMs?: number; requiresBinding?: boolean; last?: boolean; waitMs?: number; meter?: { source: UsageSource; window: UsageWindow } };
@@ -31,13 +31,22 @@ type KeySettings = Appearance & { shortcut?: string; destination?: string };
 const readings = new Map<UsageSource, UsageReading>();
 const meterKeys = new Map<string, { source: UsageSource; repaint: () => Promise<void> }>();
 let meterTimer: NodeJS.Timeout | undefined;
+let lastUsageSummary = "";
 async function refreshUsage(source: UsageSource): Promise<void> {
 	if (source === "codex") readings.set(source, readCodex());
 	else {
 		const blob = typeof globals.claudeUsageKey === "string" ? globals.claudeUsageKey : "";
 		let key: string | undefined;
 		if (blob) { const r = await ps.run("secret-unprotect", [blob, "claude-usage"]); if (r.status === "ok") key = r.message; }
-		readings.set(source, await readClaude(key));
+		if (!blob) streamDeck.logger.info("claude usage: no session key saved yet");
+		else if (!key) streamDeck.logger.warn("claude usage: saved key could not be decrypted on this PC");
+		const lines: string[] = [];
+		setUsageLog((l) => lines.push(l));
+		const reading = await readClaude(key);
+		const summary = `claude usage: ${reading.ok ? "ok " + JSON.stringify(Object.fromEntries(Object.entries(reading.windows).map(([k, w]) => [k, w?.pct]))) : reading.reason + " - " + reading.message}`;
+		// Log details only when the outcome changes, so the 60 s refresh does not flood the log.
+		if (summary !== lastUsageSummary) { for (const l of lines) streamDeck.logger.info(l); streamDeck.logger.info(summary); lastUsageSummary = summary; }
+		readings.set(source, reading);
 		key = undefined;
 	}
 	for (const k of meterKeys.values()) if (k.source === source) await k.repaint().catch(() => undefined);
