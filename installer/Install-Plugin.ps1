@@ -218,6 +218,21 @@ function Add-MissingProfiles([string]$PluginRoot, [string]$ProfilesRoot, $Manife
         }
     }
 }
+function Move-RetiredPlugins([string]$PluginsRoot, [string]$Backup) {
+    $moved = [Collections.Generic.List[object]]::new()
+    foreach ($id in @($script:Installer.RetiredPluginIds)) {
+        if (-not $id) { continue }
+        $old = Join-Path $PluginsRoot ($id + '.sdPlugin')
+        if (-not (Test-Path -LiteralPath $old)) { continue }
+        $null = Assert-ChildPath $old $PluginsRoot
+        $dest = Join-Path (Join-Path $Backup 'RetiredPlugins') ($id + '.sdPlugin')
+        $null = New-Item -ItemType Directory -Path (Split-Path -Parent $dest) -Force
+        Move-Item -LiteralPath $old -Destination $dest
+        $moved.Add([pscustomobject]@{ From = $old; To = $dest })
+        Write-Step ('Removed the old ' + $id + ' plugin (a copy is in the backup).')
+    }
+    return ,$moved
+}
 function Install-ToolkitPayload([string]$PayloadRoot, [string]$DataRoot, [string]$BackupRoot, [string]$Scratch, [scriptblock]$Restart, [scriptblock]$VerifyRuntime) {
     $manifest = Test-PluginPayload $PayloadRoot
     $pluginsRoot = Join-Path $DataRoot 'Plugins'
@@ -236,6 +251,7 @@ function Install-ToolkitPayload([string]$PayloadRoot, [string]$DataRoot, [string
     $created = [Collections.Generic.List[string]]::new()
     $hadPlugin = Test-Path -LiteralPath $installed
     $swapped = $false
+    $retired = $null
     try {
         Copy-Item -LiteralPath $PayloadRoot -Destination $candidate -Recurse
         if ($hadPlugin) {
@@ -250,6 +266,7 @@ function Install-ToolkitPayload([string]$PayloadRoot, [string]$DataRoot, [string
         try { Move-Item -LiteralPath $candidate -Destination $installed; $swapped = $true }
         catch { if (Test-Path -LiteralPath $previous) { Move-Item -LiteralPath $previous -Destination $installed }; throw }
         Add-MissingProfiles $installed $profilesRoot $manifest $Scratch $created
+        $retired = Move-RetiredPlugins $pluginsRoot $backup
         & $Restart
         & $VerifyRuntime $installed
         Test-InstalledFiles $PayloadRoot $installed
@@ -266,6 +283,7 @@ function Install-ToolkitPayload([string]$PayloadRoot, [string]$DataRoot, [string
         if ($swapped) { try { Remove-InstallFolder $installed $pluginsRoot } catch { $rollbackIssues += 'remove: ' + $_.Exception.Message } }
         if (Test-Path -LiteralPath $previous) { try { Move-Item -LiteralPath $previous -Destination $installed } catch { $rollbackIssues += 'restore: ' + $_.Exception.Message } }
         foreach ($profile in $created) { try { Remove-InstallFolder $profile $profilesRoot } catch { $rollbackIssues += 'profile: ' + $_.Exception.Message } }
+        if ($retired) { foreach ($r in $retired) { if (-not (Test-Path -LiteralPath $r.From) -and (Test-Path -LiteralPath $r.To)) { Move-Item -LiteralPath $r.To -Destination $r.From } } }
         try { Write-Json (Join-Path $backup 'installation.json') ([ordered]@{ Version = $manifest.Version; Status = 'RolledBack'; HadPreviousPlugin = $hadPlugin; Issues = @($rollbackIssues) }) } catch { }
         try { & $Restart } catch { $rollbackIssues += 'restart: ' + $_.Exception.Message }
         if ($rollbackIssues.Count) { Write-Host ('Rollback notes (your backup is in ' + $backup + '): ' + ($rollbackIssues -join '; ')) }
@@ -274,33 +292,33 @@ function Install-ToolkitPayload([string]$PayloadRoot, [string]$DataRoot, [string
 }
 
 function Test-ToolkitDependency([string]$DataRoot) {
-    $manifestPath = Join-Path $DataRoot 'Plugins\com.dailyops.v2.sdPlugin\manifest.json'
+    $manifestPath = Join-Path $DataRoot 'Plugins\com.windowstoolkit.core.sdPlugin\manifest.json'
     if (-not (Test-Path -LiteralPath $manifestPath)) { return $false }
     $manifest = Read-Json $manifestPath
-    return ($manifest.UUID -eq 'com.dailyops.v2' -and [version]$manifest.Version -ge [version]$script:Installer.Toolkit.Version)
+    return ($manifest.UUID -eq 'com.windowstoolkit.core' -and [version]$manifest.Version -ge [version]$script:Installer.Toolkit.Version)
 }
 function Invoke-ToolkitInstaller([string]$Launcher, [string]$Package, [string]$DeckExe) {
     # The dependency is a pinned, checksum-verified public release, never a build from source.
     & (Join-Path $PSHOME 'powershell.exe') -NoLogo -NoProfile -ExecutionPolicy Bypass -File $Launcher -PackagePath $Package -StreamDeckPath $DeckExe
-    if ($LASTEXITCODE -ne 0) { throw 'Windows Daily Toolkit setup did not finish. Resolve its message, then run this installer again.' }
+    if ($LASTEXITCODE -ne 0) { throw 'Windows Toolkit setup did not finish. Resolve its message, then run this installer again.' }
 }
 function Ensure-ToolkitDependency([string]$DataRoot, [string]$BundleRoot, [string]$Scratch, [string]$DeckExe, [switch]$ReadOnly) {
-    if (Test-ToolkitDependency $DataRoot) { Write-Step 'Windows Daily Toolkit is already compatible.'; return }
+    if (Test-ToolkitDependency $DataRoot) { Write-Step 'Windows Toolkit is already compatible.'; return }
     $dependency = $script:Installer.Toolkit
-    $zip = Join-Path $BundleRoot 'dependency\WindowsDailyToolkit-Installer.zip'
+    $zip = Join-Path $BundleRoot 'dependency\WindowsToolkit-Installer.zip'
     if (-not (Test-Path -LiteralPath $zip)) {
-        $zip = Join-Path $Scratch 'WindowsDailyToolkit-Installer.zip'
+        $zip = Join-Path $Scratch 'WindowsToolkit-Installer.zip'
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         Invoke-WebRequest -Uri $dependency.Url -OutFile $zip -UseBasicParsing
     }
-    if ((Get-InstallFileHash $zip) -ne $dependency.Sha256) { throw 'Windows Daily Toolkit verification failed. Download a fresh installer ZIP.' }
-    if ($ReadOnly) { Write-Step 'The verified Windows Daily Toolkit dependency will be installed during setup.'; return }
+    if ((Get-InstallFileHash $zip) -ne $dependency.Sha256) { throw 'Windows Toolkit verification failed. Download a fresh installer ZIP.' }
+    if ($ReadOnly) { Write-Step 'The verified Windows Toolkit dependency will be installed during setup.'; return }
     $destination = Join-Path $Scratch 'toolkit-dependency'
-    Expand-SafeArchive $zip $destination 'WindowsDailyToolkit-Installer/'
-    $base = Join-Path $destination 'WindowsDailyToolkit-Installer'
-    Write-Step 'Installing Windows Daily Toolkit for automatic app-profile switching...'
-    Invoke-ToolkitInstaller (Join-Path $base 'installer\Install-WindowsDailyToolkit.ps1') (Join-Path $base 'com.dailyops.v2.streamDeckPlugin') $DeckExe
-    if (-not (Test-ToolkitDependency $DataRoot)) { throw 'Windows Daily Toolkit could not be verified after setup.' }
+    Expand-SafeArchive $zip $destination 'WindowsToolkit-Installer/'
+    $base = Join-Path $destination 'WindowsToolkit-Installer'
+    Write-Step 'Installing Windows Toolkit for automatic app-profile switching...'
+    Invoke-ToolkitInstaller (Join-Path $base 'installer\Install-WindowsToolkit.ps1') (Join-Path $base 'com.windowstoolkit.core.streamDeckPlugin') $DeckExe
+    if (-not (Test-ToolkitDependency $DataRoot)) { throw 'Windows Toolkit could not be verified after setup.' }
 }
 
 # Dot-sourcing loads the same production functions for isolated installer tests.

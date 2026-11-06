@@ -14,9 +14,9 @@ const launcher='Install-'+config.InstallerId+'.cmd';
 for(const file of [launcher,'installer/Install-Plugin.ps1','installer/plugin.json'])copyFileSync(join(ROOT,file),join(bundle,file));
 copyFileSync(packageFile,join(bundle,packageName));copyFileSync(join(ROOT,'docs/INSTALL.md'),join(bundle,'READ-ME-FIRST.txt'));
 const sha=data=>createHash('sha256').update(data).digest('hex');
-const dependencyFile=join(bundle,'dependency/WindowsDailyToolkit-Installer.zip');
+const dependencyFile=join(bundle,'dependency/WindowsToolkit-Installer.zip');
 if(!existsSync(dependencyFile)||sha(readFileSync(dependencyFile))!==config.Toolkit.Sha256){
- const response=await fetch(config.Toolkit.Url);if(!response.ok)throw Error('Cannot download pinned Windows Daily Toolkit release: '+response.status);
+ const response=await fetch(config.Toolkit.Url);if(!response.ok)throw Error('Cannot download pinned Windows Toolkit release: '+response.status);
  const bytes=Buffer.from(await response.arrayBuffer());if(sha(bytes)!==config.Toolkit.Sha256)throw Error('Dependency checksum mismatch.');writeFileSync(dependencyFile,bytes);
 }
 const metadata={PluginId:manifest.UUID,Version:manifest.Version,File:packageName,Sha256:sha(readFileSync(packageFile))};
@@ -26,6 +26,6 @@ const pinned={...config,PackageSha256:metadata.Sha256};
 for(const destination of [join(bundle,'installer/plugin.json'),join(ROOT,'installer/plugin.json')])writeFileSync(destination,JSON.stringify(pinned,null,2)+'\n');
 const files={};
 // Explicit allowlist: never archive a whole build directory or local runtime data.
-for(const file of [launcher,'installer/Install-Plugin.ps1','installer/plugin.json',packageName,'installer-manifest.json','READ-ME-FIRST.txt','dependency/WindowsDailyToolkit-Installer.zip'])files[bundleName+'/'+file]=readFileSync(join(bundle,file));
+for(const file of [launcher,'installer/Install-Plugin.ps1','installer/plugin.json',packageName,'installer-manifest.json','READ-ME-FIRST.txt','dependency/WindowsToolkit-Installer.zip'])files[bundleName+'/'+file]=readFileSync(join(bundle,file));
 writeFileSync(join(ROOT,'dist',bundleName+'-'+config.Version+'.zip'),zipSync(files,{level:9}));
 console.log('Built '+bundleName+'-'+config.Version+'.zip with verified Toolkit dependency.');

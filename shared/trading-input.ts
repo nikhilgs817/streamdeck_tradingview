@@ -84,7 +84,7 @@ export class TradingInput {
 	#pending?: { id: number; resolve: (result: PsResult) => void; timer: NodeJS.Timeout };
 	constructor(readonly selector: AppSelector) {}
 	warm(): void {
-		if (this.#worker || process.env.DAILYOPS_DRYRUN === "1" || process.platform !== "win32") return;
+		if (this.#worker || process.env.WINTOOLKIT_DRYRUN === "1" || process.platform !== "win32") return;
 		const bootstrap = "$s=[Console]::In.ReadLine(); & ([ScriptBlock]::Create([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($s))))";
 		const worker = this.#worker = spawn("powershell.exe", ["-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", Buffer.from(bootstrap, "utf16le").toString("base64")], { windowsHide: true, stdio: ["pipe", "pipe", "pipe"] });
 		let buffer = "";
@@ -115,8 +115,8 @@ export class TradingInput {
 	send(shortcut: string): Promise<PsResult> {
 		const chord = tradingChord(shortcut);
 		if (!chord) return Promise.resolve({ status: "miss", message: "Set one app hotkey, such as Ctrl+Alt+B or F8" });
-		if (process.env.DAILYOPS_DRYRUN === "1" || process.platform !== "win32") {
-			if (process.env.DAILYOPS_DRYRUN_LOG) appendFileSync(process.env.DAILYOPS_DRYRUN_LOG, JSON.stringify({ command: "trading-hotkey", data: { selector: this.selector, shortcut, chord } }) + "\n");
+		if (process.env.WINTOOLKIT_DRYRUN === "1" || process.platform !== "win32") {
+			if (process.env.WINTOOLKIT_DRYRUN_LOG) appendFileSync(process.env.WINTOOLKIT_DRYRUN_LOG, JSON.stringify({ command: "trading-hotkey", data: { selector: this.selector, shortcut, chord } }) + "\n");
 			return Promise.resolve({ status: "ok", message: "Trading hotkey simulated" });
 		}
 		this.warm();

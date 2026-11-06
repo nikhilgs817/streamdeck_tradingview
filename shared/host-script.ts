@@ -21,13 +21,13 @@ function X([string]$p) { return [Environment]::ExpandEnvironmentVariables($p.Tri
 function Protect-Password([string]$password, [string]$binding = '') {
 	Add-Type -AssemblyName System.Security
 	$bytes = $utf8.GetBytes($password)
-	try { return 'dpapi:v1:' + [Convert]::ToBase64String([Security.Cryptography.ProtectedData]::Protect($bytes, $utf8.GetBytes('com.dailyops.v2.credentials.v1|' + $binding), [Security.Cryptography.DataProtectionScope]::CurrentUser)) }
+	try { return 'dpapi:v1:' + [Convert]::ToBase64String([Security.Cryptography.ProtectedData]::Protect($bytes, $utf8.GetBytes('com.windowstoolkit.core.credentials.v1|' + $binding), [Security.Cryptography.DataProtectionScope]::CurrentUser)) }
 	finally { [Array]::Clear($bytes, 0, $bytes.Length) }
 }
 function Unprotect-Password([string]$protected, [string]$binding = '') {
 	if (-not $protected.StartsWith('dpapi:v1:')) { throw 'Unsupported password format.' }
 	Add-Type -AssemblyName System.Security
-	$bytes = [Security.Cryptography.ProtectedData]::Unprotect([Convert]::FromBase64String($protected.Substring(9)), $utf8.GetBytes('com.dailyops.v2.credentials.v1|' + $binding), [Security.Cryptography.DataProtectionScope]::CurrentUser)
+	$bytes = [Security.Cryptography.ProtectedData]::Unprotect([Convert]::FromBase64String($protected.Substring(9)), $utf8.GetBytes('com.windowstoolkit.core.credentials.v1|' + $binding), [Security.Cryptography.DataProtectionScope]::CurrentUser)
 	try { return $utf8.GetString($bytes) }
 	finally { [Array]::Clear($bytes, 0, $bytes.Length) }
 }
@@ -79,7 +79,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
 
-public static class DailyOpsIcon {
+public static class WinToolkitIcon {
 	[ComImport, Guid("bcc18b79-ba16-442f-80c4-8a59c30c463b"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 	private interface IShellItemImageFactory { [PreserveSig] int GetImage(SIZE size, int flags, out IntPtr phbm); }
 	[StructLayout(LayoutKind.Sequential)] private struct SIZE { public int cx; public int cy; }
@@ -123,7 +123,7 @@ public static class DailyOpsIcon {
 		} finally { DeleteObject(hbm); }
 	}
 }
-public static class DailyOpsWin {
+public static class WinToolkitWin {
 	private delegate bool EnumProc(IntPtr h, IntPtr l);
 	private delegate bool MonitorEnumProc(IntPtr hMon, IntPtr hdc, ref RECT r, IntPtr d);
 	[StructLayout(LayoutKind.Sequential)] public struct RECT { public int L; public int T; public int R; public int B; }
@@ -321,7 +321,7 @@ public static class DailyOpsWin {
 	}
 }
 // Turns individual screens on and off (Windows "Disconnect this display" + DDC/CI sleep) and reports their state.
-public static class DailyOpsDisplay {
+public static class WinToolkitDisplay {
 	[StructLayout(LayoutKind.Sequential)] public struct LUID { public uint Low; public int High; }
 	[StructLayout(LayoutKind.Sequential)] public struct PSRC { public LUID adapterId; public uint id; public uint modeInfoIdx; public uint statusFlags; }
 	[StructLayout(LayoutKind.Sequential)] public struct RATIONAL { public uint N; public uint D; }
@@ -613,12 +613,12 @@ public static class DailyOpsDisplay {
 }
 
 // Screenshots: active window or all screens (saved as PNG and/or copied), plus saving a copy of area snips.
-public static class DailyOpsShot {
+public static class WinToolkitShot {
 	[DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
 	[DllImport("user32.dll")] private static extern int GetSystemMetrics(int i);
 	[DllImport("user32.dll")] private static extern IntPtr SetThreadDpiAwarenessContext(IntPtr c);
-	[DllImport("dwmapi.dll")] private static extern int DwmGetWindowAttribute(IntPtr h, int attr, out DailyOpsWin.RECT r, int size);
-	[DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr h, out DailyOpsWin.RECT r);
+	[DllImport("dwmapi.dll")] private static extern int DwmGetWindowAttribute(IntPtr h, int attr, out WinToolkitWin.RECT r, int size);
+	[DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr h, out WinToolkitWin.RECT r);
 	[DllImport("user32.dll")] private static extern uint GetClipboardSequenceNumber();
 	[DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
 
@@ -644,8 +644,8 @@ public static class DailyOpsShot {
 		if (mode == "window") {
 			IntPtr hw = GetForegroundWindow();
 			if (hw == IntPtr.Zero) throw new Exception("No active window.");
-			DailyOpsWin.RECT r;
-			if (DwmGetWindowAttribute(hw, 9, out r, Marshal.SizeOf(typeof(DailyOpsWin.RECT))) != 0) GetWindowRect(hw, out r); // 9 = frame without shadow
+			WinToolkitWin.RECT r;
+			if (DwmGetWindowAttribute(hw, 9, out r, Marshal.SizeOf(typeof(WinToolkitWin.RECT))) != 0) GetWindowRect(hw, out r); // 9 = frame without shadow
 			x = r.L; y = r.T; w = r.R - r.L; h = r.B - r.T;
 			uint pid; GetWindowThreadProcessId(hw, out pid);
 			try { tag = " " + Process.GetProcessById((int)pid).ProcessName; } catch { }
@@ -746,10 +746,10 @@ while ($true) {
 			'secret-protect' { if ($a[0].Length -gt 4096) { throw 'Password too long.' }; $msg = Protect-Password $a[0] $a[1] }
 			'secret-unprotect' { if ($a[0].Length -gt 32768) { throw 'Password data too long.' }; $msg = Unprotect-Password $a[0] $a[1] }
 			'warm' { $null = Get-Apps $true; $msg = [string]$script:apps.Count + ' apps'; try { Ensure-Native } catch { $msg += ' (native helpers unavailable: ' + $_.Exception.Message + ')' } }
-			'snap' { Ensure-Native; $script:snap = [DailyOpsWin]::Snapshot(); $script:fg = [DailyOpsWin]::Foreground(); $msg = [string]$script:snap.Count }
+			'snap' { Ensure-Native; $script:snap = [WinToolkitWin]::Snapshot(); $script:fg = [WinToolkitWin]::Foreground(); $msg = [string]$script:snap.Count }
 			'place' {
 				Ensure-Native
-				[DailyOpsWin]::PlaceAsync([long[]]$script:snap, [long]$script:fg, [int]$a[0], $a[1], [int]$a[2])
+				[WinToolkitWin]::PlaceAsync([long[]]$script:snap, [long]$script:fg, [int]$a[0], $a[1], [int]$a[2])
 				$msg = 'placing on monitor ' + ([int]$a[0] + 1)
 			}
 			'sendto' {
@@ -758,9 +758,9 @@ while ($true) {
 				Ensure-Native
 				$target = 0
 				if ($a[0]) {
-					if (-not [DailyOpsWin]::Activate($a[0])) { $status = 'miss'; $msg = 'Open VS Code first.'; break }
+					if (-not [WinToolkitWin]::Activate($a[0])) { $status = 'miss'; $msg = 'Open VS Code first.'; break }
 					Start-Sleep -Milliseconds 90
-					$target = [DailyOpsWin]::ForegroundPid()
+					$target = [WinToolkitWin]::ForegroundPid()
 					$fgName = ''; try { $fgName = (Get-Process -Id $target -ErrorAction Stop).ProcessName } catch { }
 					if (@($a[0].Split('|')) -notcontains $fgName) { $status = 'miss'; $msg = 'VS Code did not come to the front. Nothing was sent.'; break }
 				}
@@ -768,7 +768,7 @@ while ($true) {
 				# Windows PowerShell 5.1 returns a JSON array as one object from a pipeline; assign first so it enumerates.
 				$steps = ConvertFrom-Json $a[1]
 				foreach ($st in @($steps)) {
-					if ($target -and [DailyOpsWin]::ForegroundPid() -ne $target) { $status = 'miss'; $msg = 'VS Code lost focus. Nothing more was sent.'; break }
+					if ($target -and [WinToolkitWin]::ForegroundPid() -ne $target) { $status = 'miss'; $msg = 'VS Code lost focus. Nothing more was sent.'; break }
 					if ($st.w) { Start-Sleep -Milliseconds ([Math]::Min(2000, [int]$st.w)) }
 					if ($st.k) { $sh.SendKeys([string]$st.k) }
 					if ($st.t) { $sh.SendKeys((SK-Escape ([string]$st.t))) }
@@ -781,42 +781,42 @@ while ($true) {
 				Ensure-Native
 				$names = $a[0].Split('|')
 				$isApp = { param($procId) try { $pr = Get-Process -Id $procId -ErrorAction Stop; if ($names -notcontains $pr.ProcessName) { return $false }; if ($a[1]) { $pa = ''; try { $pa = $pr.Path } catch { }; if (-not $pa -or $pa -notmatch $a[1]) { return $false } }; return $true } catch { return $false } }
-				if (-not [DailyOpsWin]::Activate($a[0])) { $status = 'miss'; $msg = 'Open the app first.'; break }
+				if (-not [WinToolkitWin]::Activate($a[0])) { $status = 'miss'; $msg = 'Open the app first.'; break }
 				Start-Sleep -Milliseconds 90
-				$target = [DailyOpsWin]::ForegroundPid()
+				$target = [WinToolkitWin]::ForegroundPid()
 				if (-not (& $isApp $target)) { $status = 'miss'; $msg = 'The app did not come to the front. Nothing was sent.'; break }
 				$sh = Shell
 				# Windows PowerShell 5.1 returns a JSON array as one object from a pipeline; assign first so it enumerates.
 				$steps = ConvertFrom-Json $a[2]
 				foreach ($st in @($steps)) {
-					if ([DailyOpsWin]::ForegroundPid() -ne $target) { $status = 'miss'; $msg = 'The app lost focus. Nothing more was sent.'; break }
+					if ([WinToolkitWin]::ForegroundPid() -ne $target) { $status = 'miss'; $msg = 'The app lost focus. Nothing more was sent.'; break }
 					if ($st.w) { Start-Sleep -Milliseconds ([Math]::Min(2000, [int]$st.w)) }
 					if ($st.k) { $sh.SendKeys([string]$st.k) }
-					if ($st.win) { [DailyOpsWin]::WinKey([byte]$st.win) }
+					if ($st.win) { [WinToolkitWin]::WinKey([byte]$st.win) }
 					Start-Sleep -Milliseconds 30
 				}
 				if ($status -eq 'ok') { $msg = 'sent' }
 			}
-			'watchfg' { Ensure-Native; [DailyOpsWin]::WatchForeground(250); $msg = 'watching' }
-			'monitors' { Ensure-Native; $msg = [DailyOpsWin]::Describe($a[0]) }
-			'mlist' { Ensure-Native; $msg = [DailyOpsDisplay]::List() }
-			'moff' { Ensure-Native; $msg = [DailyOpsDisplay]::Off($a[0], ($a[1] -eq '1')) }
+			'watchfg' { Ensure-Native; [WinToolkitWin]::WatchForeground(250); $msg = 'watching' }
+			'monitors' { Ensure-Native; $msg = [WinToolkitWin]::Describe($a[0]) }
+			'mlist' { Ensure-Native; $msg = [WinToolkitDisplay]::List() }
+			'moff' { Ensure-Native; $msg = [WinToolkitDisplay]::Off($a[0], ($a[1] -eq '1')) }
 			'mon' {
 				# a[0] = screen key, a[1] = wake 1/0, a[2] = the Windows number it had before (0 = unknown)
 				Ensure-Native
 				$prefer = 0; if ($a.Count -gt 2 -and $a[2]) { $prefer = [int]$a[2] }
-				try { $msg = [DailyOpsDisplay]::On($a[0], ($a[1] -eq '1'), $prefer) }
+				try { $msg = [WinToolkitDisplay]::On($a[0], ($a[1] -eq '1'), $prefer) }
 				catch {
 					$e = $_.Exception; if ($e.InnerException) { $e = $e.InnerException }
 					if ($e.Message -notmatch 'refused') { throw $e.Message }
 					# Windows refused the exact layout. Last resort: "Extend" (every connected screen on), then switch the others back off.
-					$offBefore = @([DailyOpsDisplay]::OffKeys())
-					$code = [DailyOpsDisplay]::ExtendAll()
+					$offBefore = @([WinToolkitDisplay]::OffKeys())
+					$code = [WinToolkitDisplay]::ExtendAll()
 					if ($code -ne 0) { throw $e.Message }
 					Start-Sleep -Milliseconds 1500
-					foreach ($k in $offBefore) { if ($k -ne $a[0]) { try { $null = [DailyOpsDisplay]::Off($k, $false) } catch { } } }
-					if (-not [DailyOpsDisplay]::IsOn($a[0])) { throw $e.Message }
-					if ($a[1] -eq '1') { [DailyOpsDisplay]::WakeLater($a[0]) }
+					foreach ($k in $offBefore) { if ($k -ne $a[0]) { try { $null = [WinToolkitDisplay]::Off($k, $false) } catch { } } }
+					if (-not [WinToolkitDisplay]::IsOn($a[0])) { throw $e.Message }
+					if ($a[1] -eq '1') { [WinToolkitDisplay]::WakeLater($a[0]) }
 					$msg = 'on (via extend)'
 				}
 			}
@@ -826,13 +826,13 @@ while ($true) {
 				$folder = if ($a[1]) { X $a[1] } else { Shots-Folder }
 				$save = $a[2] -ne '0'; $clip = $a[3] -ne '0'
 				if ($a[0] -eq 'area') {
-					$seq = [DailyOpsShot]::ClipSeq()
+					$seq = [WinToolkitShot]::ClipSeq()
 					try { Start-Process -FilePath 'ms-screenclip:' }
 					catch { Start-Process -FilePath "$env:WINDIR\System32\SnippingTool.exe" -ArgumentList '/clip' }
-					if ($save) { [DailyOpsShot]::SaveNextClipboardImage($seq, $folder, (Shots-Folder), 45000) }
+					if ($save) { [WinToolkitShot]::SaveNextClipboardImage($seq, $folder, (Shots-Folder), 45000) }
 					$msg = 'snipping'
 				}
-				elseif (@('window', 'all') -contains $a[0]) { $msg = [DailyOpsShot]::Capture($a[0], $folder, $save, $clip) }
+				elseif (@('window', 'all') -contains $a[0]) { $msg = [WinToolkitShot]::Capture($a[0], $folder, $save, $clip) }
 				else { throw ('bad screenshot mode: ' + $a[0]) }
 			}
 			'apps' {
@@ -855,7 +855,7 @@ while ($true) {
 				$t = $a[0]
 				if ($t -notmatch '^shell:') { $t = X $t; if (-not (Test-Path -LiteralPath $t)) { throw ('Not found: ' + $t) } }
 				$size = 256; if ($a.Count -gt 1 -and $a[1]) { $size = [int]$a[1] }
-				$msg = [DailyOpsIcon]::Png($t, $size)
+				$msg = [WinToolkitIcon]::Png($t, $size)
 			}
 			'path' {
 				$t = X $a[0]

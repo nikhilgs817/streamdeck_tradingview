@@ -56,11 +56,11 @@ export type AnySettings = AppSettings & FolderSettings & WebsiteSettings & Volum
 /* ------------------------------------------------------------------ base */
 
 /** manifest UUID → action instance (used for settings-panel requests). */
-export const REGISTRY = new Map<string, DailyAction<AnySettings>>();
+export const REGISTRY = new Map<string, ToolkitAction<AnySettings>>();
 
 type Look = { glyph: string; theme: string; label: string; style: "real" | "neon" | "vivid" | "pro" | "app" | "light" };
 
-export abstract class DailyAction<T extends AnySettings> extends SingletonAction<T> {
+export abstract class ToolkitAction<T extends AnySettings> extends SingletonAction<T> {
 	/** Key into PRESET_ICONS — also the UUID suffix. */
 	protected abstract readonly kind: string;
 	#lastImage = new Map<string, string>();
@@ -69,7 +69,7 @@ export abstract class DailyAction<T extends AnySettings> extends SingletonAction
 	constructor() {
 		super();
 		queueMicrotask(() => {
-			if (this.manifestId) REGISTRY.set(this.manifestId, this as unknown as DailyAction<AnySettings>);
+			if (this.manifestId) REGISTRY.set(this.manifestId, this as unknown as ToolkitAction<AnySettings>);
 		});
 	}
 
@@ -101,7 +101,7 @@ export abstract class DailyAction<T extends AnySettings> extends SingletonAction
 	}
 
 	protected motion(s: T): { kind: string; phase: number } | undefined {
-		return s.animate === false ? undefined : { kind: this.kind, phase: (Date.now() % 6000) / 6000 };
+		return s.animate === false ? undefined : { kind: this.kind, phase: (Date.now() % 12000) / 12000 };
 	}
 
 	#updateMotion(action: Action<T>, settings: T): void {
@@ -202,7 +202,7 @@ export type Press = 0 | 1 | 2 | null;
  * Keys with three gestures: a tap, a quick double-tap, or holding the key (3 s by default).
  * The hold fires as soon as the time is reached, while the key is still down.
  */
-export abstract class GestureAction<T extends AnySettings> extends DailyAction<T> {
+export abstract class GestureAction<T extends AnySettings> extends ToolkitAction<T> {
 	#g = new Map<string, Gesture>();
 	/** Default hold time in seconds when the key has no setting. */
 	protected readonly defaultHold: number = 3;

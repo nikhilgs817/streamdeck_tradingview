@@ -1,15 +1,18 @@
 {
   "InstallerId": "TradingViewControls",
   "Name": "TradingView Controls",
-  "PluginId": "com.dailyops.tradingview.v1",
+  "PluginId": "com.windowstoolkit.tradingview",
   "PluginFolder": "tradingview",
   "Profile": "profiles/tradingview",
-  "Version": "1.0.1.0",
+  "Version": "2.0.0.0",
   "Repository": "nikhilgs817/streamdeck_tradingview",
   "Toolkit": {
-    "Version": "2.6.1.0",
-    "Url": "https://github.com/nikhilgs817/windows_daily_toolkit/releases/download/v2.6.1/WindowsDailyToolkit-Installer-2.6.1.0.zip",
-    "Sha256": "c2e1fd3e6e2671b16b7f4a70d54913596569164c5d89cf305e521d60310621c3"
+    "Version": "3.0.0.0",
+    "Url": "https://github.com/nikhilgs817/windows_toolkit/releases/download/v3.0.0/WindowsToolkit-Installer-3.0.0.0.zip",
+    "Sha256": "31506048f13823fdbff39b69dbfb66cb63952bb1a5ffb8c73b477a319b1df0b5"
   },
-  "PackageSha256": "dc893c432b8151f33e2e3eada9fd6dc6fb27a9a6b4d64785d242fb688abf6564"
+  "PackageSha256": "5f13a4b1e9c32b40dc3ebf7e868d0ce163c123ff2eba266661f2334e81d9808f",
+  "RetiredPluginIds": [
+    "com.dailyops.tradingview.v1"
+  ]
 }

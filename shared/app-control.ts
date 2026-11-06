@@ -78,8 +78,8 @@ try{
 }catch{@{status='miss';message=$_.Exception.Message} | ConvertTo-Json -Compress}
 `;
 export function controlApp(data: AppControl): Promise<PsResult> {
-	if (process.env.DAILYOPS_DRYRUN === "1" || process.platform !== "win32") {
-		if (process.env.DAILYOPS_DRYRUN_LOG) appendFileSync(process.env.DAILYOPS_DRYRUN_LOG, JSON.stringify({ command: "app-control", data }) + "\n");
+	if (process.env.WINTOOLKIT_DRYRUN === "1" || process.platform !== "win32") {
+		if (process.env.WINTOOLKIT_DRYRUN_LOG) appendFileSync(process.env.WINTOOLKIT_DRYRUN_LOG, JSON.stringify({ command: "app-control", data }) + "\n");
 		return Promise.resolve({ status: "ok", message: "Control simulated" });
 	}
 	return new Promise((resolve) => {

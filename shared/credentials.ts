@@ -19,7 +19,7 @@ export const credentialBinding = (s: AppSettings): string => s.appId ? "appid:" 
 export async function fillAppCredentials(s: AppSettings): Promise<PsResult> {
 	if (!credentialBinding(s)) return { status: "err", message: failures.identity };
 	if (!s.credentialApp || s.credentialApp !== credentialBinding(s)) return { status: "err", message: "The selected app changed. Save its credentials again before using autofill." };
-	if (process.platform !== "win32" || process.env.DAILYOPS_DRYRUN === "1") return { status: "err", message: "Autofill requires Windows." };
+	if (process.platform !== "win32" || process.env.WINTOOLKIT_DRYRUN === "1") return { status: "err", message: "Autofill requires Windows." };
 	if (filling) return { status: "err", message: "Another app is already filling credentials." };
 	if (!s.credentialUsername || !s.credentialPassword?.startsWith("dpapi:v1:") || s.credentialUsername.length > 512 || s.credentialPassword.length > 32768) return { status: "err", message: "Save a username and encrypted password first." };
 	filling = true;

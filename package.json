@@ -1,21 +1,21 @@
 {
   "name": "streamdeck-tradingview",
   "type": "module",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "Unofficial TradingView controls for Elgato Stream Deck on Windows",
   "scripts": {
     "build": "node tools/generate.mjs && rollup -c",
     "test": "node tools/test-workflows.mjs && node tools/test-trading-input.mjs && node tools/test-usage.mjs",
     "test:ui": "node tools/test-companion-ui.mjs",
-    "validate": "streamdeck validate plugins/tradingview/com.dailyops.tradingview.v1.sdPlugin",
-    "pack": "node tools/clean.mjs && streamdeck pack plugins/tradingview/com.dailyops.tradingview.v1.sdPlugin --output dist --force",
+    "validate": "streamdeck validate plugins/tradingview/com.windowstoolkit.tradingview.sdPlugin",
+    "pack": "node tools/clean.mjs && streamdeck pack plugins/tradingview/com.windowstoolkit.tradingview.sdPlugin --output dist --force",
     "preview": "node tools/render-app-preview.mjs",
     "test:input": "node tools/test-trading-input.mjs",
     "build:installer": "node tools/build-installer.mjs",
     "test:installer": "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File tools/test-installer.ps1"
   },
   "keywords": [],
-  "author": "Daily Ops",
+  "author": "Windows Toolkit",
   "license": "MIT",
   "devDependencies": {
     "@elgato/cli": "^1.10.2",

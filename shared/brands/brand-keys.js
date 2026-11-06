@@ -11,7 +11,7 @@ export const CLAUDE_TOKENS = {
 	serif: "Georgia, 'Times New Roman', 'DejaVu Serif', serif",
 };
 
-// Key labels: Segoe UI Bold, the same family as Windows Daily Toolkit (title case on Claude Dark/Light).
+// Key labels: Segoe UI Bold, the same family as Windows Toolkit (title case on Claude Dark/Light).
 export const LABEL_FONT = "'Segoe UI', 'DejaVu Sans', Arial, sans-serif";
 
 // Mutable palette used while one key renders (renders are synchronous, so this is safe).

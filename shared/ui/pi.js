@@ -1,9 +1,9 @@
-/* Daily Ops — settings panel (property inspector). Plain JS, no external dependencies. */
+/* Windows Toolkit — settings panel (property inspector). Plain JS, no external dependencies. */
 (function () {
 	"use strict";
 
 	// Shared by every plugin in the suite. kind = the action's last UUID segment; VS Code keys are "vsc-*".
-	const PLUGIN_PREFIXES = { "com.dailyops.vscode.v2.": "vsc-", "com.dailyops.v2.": "" };
+	const PLUGIN_PREFIXES = { "com.windowstoolkit.vscode.": "vsc-", "com.windowstoolkit.core.": "" };
 	const APP_KINDS = ["app"];
 
 	// Keys that have a "real" icon (app / site / folder icon from Windows or the web).
@@ -13,7 +13,7 @@
 
 	const LAUNCH_KINDS = APP_KINDS.concat(["downloads", "folder", "website", "vsc-project"]);
 	const FOLDER_KINDS = ["folder", "downloads", "vsc-project"];
-	/** Daily Ops keys that hand the deck over to a companion plugin's keys (VS Code key, or any app key set to VS Code). */
+	/** Windows Toolkit keys that hand the deck over to a companion plugin's keys (VS Code key, or any app key set to VS Code). */
 	const VSCODE_RE = /visual studio code|\bvs ?code\b|vscodium|\bcode( - insiders)?\.exe\b|Microsoft\.VisualStudioCode/i;
 	const MONITOR_KINDS = ["monitorcontrol"];
 	let motionTimer = null;
@@ -46,7 +46,7 @@
 	let passwordTimer = null;
 
 	const $ = (id) => document.getElementById(id);
-	const I = () => window.DailyOpsIcons;
+	const I = () => window.WinToolkitIcons;
 
 	/* ------------------------------------------------------------ Stream Deck connection */
 
@@ -71,14 +71,14 @@
 			if (actionUuid.startsWith(prefix)) { kind = tag + actionUuid.slice(prefix.length); break; }
 		}
 		settings = (ai.payload && ai.payload.settings) || {};
-		if (window.DailyOpsCompanion && actionUuid.startsWith(window.DailyOpsCompanion.uuid + ".")) kind = "comp-" + actionUuid.slice(window.DailyOpsCompanion.uuid.length + 1);
+		if (window.WinToolkitCompanion && actionUuid.startsWith(window.WinToolkitCompanion.uuid + ".")) kind = "comp-" + actionUuid.slice(window.WinToolkitCompanion.uuid.length + 1);
 
 		ws = new WebSocket("ws://127.0.0.1:" + port);
 		ws.onopen = () => {
 			ws.send(JSON.stringify({ event: registerEvent, uuid: piUuid }));
 			if (APP_KINDS.includes(kind)) requestApps();
 			if (MONITOR_KINDS.includes(kind)) sendToPlugin({ event: "getScreens" });
-			if (LAUNCH_KINDS.includes(kind) || kind === "vsc-back" || window.DailyOpsCompanion) ws.send(JSON.stringify({ event: "getGlobalSettings", context: piUuid }));
+			if (LAUNCH_KINDS.includes(kind) || kind === "vsc-back" || window.WinToolkitCompanion) ws.send(JSON.stringify({ event: "getGlobalSettings", context: piUuid }));
 		};
 		ws.onmessage = (e) => {
 			let m;
@@ -304,10 +304,10 @@
 
 	function build() {
 		const show = (id, on) => ($(id).hidden = !on);
-		show("styleApp", !!window.DailyOpsDesign);
-		show("styleLight", !!(window.DailyOpsDesign && window.DailyOpsDesign.light));
-		if (window.DailyOpsDesign && window.DailyOpsDesign.styleName) $("styleApp").textContent = window.DailyOpsDesign.styleName;
-		const companion = window.DailyOpsCompanion;
+		show("styleApp", !!window.WinToolkitDesign);
+		show("styleLight", !!(window.WinToolkitDesign && window.WinToolkitDesign.light));
+		if (window.WinToolkitDesign && window.WinToolkitDesign.styleName) $("styleApp").textContent = window.WinToolkitDesign.styleName;
+		const companion = window.WinToolkitCompanion;
 		const definition = companion?.commands?.find((c) => "comp-" + c.id === kind);
 		show("sec-companion", !!definition);
 		if (definition) {
@@ -468,7 +468,7 @@
 		// Look
 		const realCapable = REAL_CAPABLE.includes(kind);
 		$("styleReal").hidden = !realCapable;
-		$("stylePro").hidden = kind.indexOf("vsc-") !== 0 && !window.DailyOpsCompanion;
+		$("stylePro").hidden = kind.indexOf("vsc-") !== 0 && !window.WinToolkitCompanion;
 		$("styleReal").textContent = kind === "folder" || kind === "downloads" ? "Folder icon" : kind === "website" ? "Site icon" : "App icon";
 		for (const b of document.querySelectorAll("#styleSeg button")) {
 			b.addEventListener("click", () => {
@@ -631,7 +631,7 @@
 
 	function dynamicLabel() {
 		const s = settings;
-		const definition = window.DailyOpsCompanion?.commands?.find(c => "comp-" + c.id === kind);
+		const definition = window.WinToolkitCompanion?.commands?.find(c => "comp-" + c.id === kind);
 		if (definition && (((definition.trading === "submit" || definition.requiresBinding) && !s.shortcut?.trim()) || (definition.operation === "url" && !definition.url && !s.destination?.trim()))) return definition.name + " · SETUP";
 		if (APP_KINDS.includes(kind)) {
 			if (s.appName) return s.appName;
@@ -681,7 +681,7 @@
 		const hint = $("styleHint");
 		hint.className = "hint";
 		hint.textContent = "";
-		if (look.style === "app") hint.textContent = "Uses " + window.DailyOpsDesign.name + " colours. Choose Colourful, Vivid or Pro to use a custom colour.";
+		if (look.style === "app") hint.textContent = "Uses " + window.WinToolkitDesign.name + " colours. Choose Colourful, Vivid or Pro to use a custom colour.";
 		$("themes").hidden = look.style === "app";
 		$("themes").previousElementSibling.hidden = look.style === "app";
 		$("refreshIcon").hidden = usingImage || look.style !== "real";
@@ -728,7 +728,7 @@
 
 	function animatedLook(look) {
 		return settings.animate !== false
-			? Object.assign({}, look, { motion: { kind, phase: (Date.now() % 6000) / 6000 } }) : look;
+			? Object.assign({}, look, { motion: { kind, phase: (Date.now() % 12000) / 12000 } }) : look;
 	}
 
 	function drawPreview() {

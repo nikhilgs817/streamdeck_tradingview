@@ -16,7 +16,7 @@ const b64 = (s: string) => Buffer.from(s, "utf8").toString("base64");
 const unb64 = (s: string) => Buffer.from(s ?? "", "base64").toString("utf8");
 
 /** Dry-run (non-Windows, or forced for tests): commands are recorded instead of executed. */
-const DRY = process.platform !== "win32" || process.env.DAILYOPS_DRYRUN === "1";
+const DRY = process.platform !== "win32" || process.env.WINTOOLKIT_DRYRUN === "1";
 
 /**
  * A single long-lived, hidden PowerShell process. Spawning PowerShell per key press costs ~0.5s,
@@ -32,7 +32,7 @@ class PowerShellHost {
 
 	onEvent(listener: (e: PsEvent) => void): void {
 		this.#listeners.push(listener);
-		if (DRY && process.env.DAILYOPS_DRYRUN_EVENTS && this.#listeners.length === 1) this.#pollDryEvents(process.env.DAILYOPS_DRYRUN_EVENTS);
+		if (DRY && process.env.WINTOOLKIT_DRYRUN_EVENTS && this.#listeners.length === 1) this.#pollDryEvents(process.env.WINTOOLKIT_DRYRUN_EVENTS);
 	}
 
 	#emit(e: PsEvent): void {
@@ -163,13 +163,13 @@ const DRY_SCREENS = [
 const DRY_NUMS = new Map(DRY_SCREENS.map((m) => [m.key, m.num]));
 const DRY_SOURCES = new Map(DRY_SCREENS.map((m) => [m.key, m.gdiNum]));
 
-/** Dry-run behaviour: log the command (and append it to DAILYOPS_DRYRUN_LOG if set). */
+/** Dry-run behaviour: log the command (and append it to WINTOOLKIT_DRYRUN_LOG if set). */
 function dryRun(command: string, args: string[]): PsResult {
 	// Never log credentials, even in tests. Fail closed when native DPAPI is unavailable.
 	if (command.startsWith("secret-")) return { status: "err", message: "Password protection requires Windows DPAPI." };
 	const entry = JSON.stringify({ command, args });
 	log.info(`[dry-run] ${entry}`);
-	if (process.env.DAILYOPS_DRYRUN_LOG) appendFileSync(process.env.DAILYOPS_DRYRUN_LOG, entry + "\n");
+	if (process.env.WINTOOLKIT_DRYRUN_LOG) appendFileSync(process.env.WINTOOLKIT_DRYRUN_LOG, entry + "\n");
 	switch (command) {
 		case "apps":
 			return {

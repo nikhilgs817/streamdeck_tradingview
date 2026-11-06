@@ -37,7 +37,7 @@ try {
             $folder = Join-Path $profiles 'FIXTURE.sdProfile'
             $null = New-Item -ItemType Directory -Path (Join-Path $folder 'Profiles\PAGE') -Force
             Write-Json (Join-Path $folder 'manifest.json') @{Device=@{Model='20GBL9901';UUID='@(1)[FIXTURE]'};Name='My existing layout';Version='3.0';Pages=@{Current='PAGE';Default='PAGE';Pages=@('PAGE')}}
-            Write-Json (Join-Path $folder 'Profiles\PAGE\manifest.json') @{Controllers=@(@{Type='Keypad';Actions=@{'2,1'=@{ActionID='KEEP-ID';UUID='com.dailyops.v2.app';Settings=@{iconTheme='cosmic';credentialPassword='synthetic-ciphertext-fixture';folderPath='C:\Example folder'}}}})}
+            Write-Json (Join-Path $folder 'Profiles\PAGE\manifest.json') @{Controllers=@(@{Type='Keypad';Actions=@{'2,1'=@{ActionID='KEEP-ID';UUID='com.windowstoolkit.core.app';Settings=@{iconTheme='cosmic';credentialPassword='synthetic-ciphertext-fixture';folderPath='C:\Example folder'}}}})}
         }
         if ($OldPlugin) {
             $old = Join-Path $data ('Plugins\' + $script:PluginId + '.sdPlugin')
@@ -94,7 +94,7 @@ try {
     $newer = Fixture 'Newer version' -OldPlugin
     Write-Json (Join-Path $newer ('Plugins\' + $script:PluginId + '.sdPlugin\manifest.json')) @{UUID=$script:PluginId;Version='99.0.0.0'}
     Must-Fail 'a newer installed plugin cannot be downgraded' { Install-ToolkitPayload $payload $newer (Join-Path $tempRoot 'backups') $tempRoot $restart $runtime }
-    foreach ($badName in @('../outside.txt', 'com.dailyops.v2.sdPlugin/../../outside.txt', '/absolute.txt', 'com.dailyops.v2.sdPlugin/C:bad.txt', 'com.dailyops.v2.sdPlugin/CON.txt', 'com.dailyops.v2.sdPlugin/foo.')) {
+    foreach ($badName in @('../outside.txt', 'com.windowstoolkit.core.sdPlugin/../../outside.txt', '/absolute.txt', 'com.windowstoolkit.core.sdPlugin/C:bad.txt', 'com.windowstoolkit.core.sdPlugin/CON.txt', 'com.windowstoolkit.core.sdPlugin/foo.')) {
         $zip = Join-Path $tempRoot ([guid]::NewGuid().ToString() + '.zip')
         $archive = [IO.Compression.ZipFile]::Open($zip, [IO.Compression.ZipArchiveMode]::Create)
         $entry = $archive.CreateEntry($badName);$writer=[IO.StreamWriter]::new($entry.Open());$writer.Write('fixture');$writer.Dispose();$archive.Dispose()
@@ -112,18 +112,18 @@ try {
     function Invoke-ToolkitInstaller([string]$Launcher, [string]$Package, [string]$DeckExe) {
         Check 'dependency launcher and payload exist' ((Test-Path -LiteralPath $Launcher) -and (Test-Path -LiteralPath $Package))
         $script:DependencyCalls++
-        $directory = Join-Path $script:DependencyData 'Plugins\com.dailyops.v2.sdPlugin'
+        $directory = Join-Path $script:DependencyData 'Plugins\com.windowstoolkit.core.sdPlugin'
         $null = New-Item -ItemType Directory -Path $directory -Force
-        Write-Json (Join-Path $directory 'manifest.json') @{UUID='com.dailyops.v2';Version=$script:Installer.Toolkit.Version}
+        Write-Json (Join-Path $directory 'manifest.json') @{UUID='com.windowstoolkit.core';Version=$script:Installer.Toolkit.Version}
     }
     Ensure-ToolkitDependency $dependencyData $bundle $tempRoot 'fixture.exe'
     Check 'missing Toolkit is installed once' ($script:DependencyCalls -eq 1 -and (Test-ToolkitDependency $dependencyData))
-    Write-Json (Join-Path $dependencyData 'Plugins\com.dailyops.v2.sdPlugin\manifest.json') @{UUID='com.dailyops.v2';Version='99.0.0.0'}
+    Write-Json (Join-Path $dependencyData 'Plugins\com.windowstoolkit.core.sdPlugin\manifest.json') @{UUID='com.windowstoolkit.core';Version='99.0.0.0'}
     Ensure-ToolkitDependency $dependencyData $bundle $tempRoot 'fixture.exe'
     Check 'newer Toolkit dependency is kept' ($script:DependencyCalls -eq 1)
     $tampered = Join-Path $tempRoot 'Tampered dependency'
     $null = New-Item -ItemType Directory -Path (Join-Path $tampered 'dependency') -Force
-    [IO.File]::WriteAllText((Join-Path $tampered 'dependency\WindowsDailyToolkit-Installer.zip'), 'invalid-fixture')
+    [IO.File]::WriteAllText((Join-Path $tampered 'dependency\WindowsToolkit-Installer.zip'), 'invalid-fixture')
     Must-Fail 'tampered Toolkit dependency is rejected' { Ensure-ToolkitDependency (Join-Path $tempRoot 'missing') $tampered $tempRoot 'fixture.exe' -ReadOnly }
     Write-Host ($script:Checks.ToString() + ' installer checks passed; no real app or personal data was modified.')
 } finally { Remove-InstallFolder $tempRoot ([IO.Path]::GetTempPath()) }

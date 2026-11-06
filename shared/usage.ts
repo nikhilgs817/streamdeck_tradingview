@@ -26,7 +26,7 @@ function findRateLimits(value: unknown): Record<string, unknown> | undefined {
 }
 
 /** Newest rate-limit snapshot written by the Codex/ChatGPT app. */
-export function readCodex(home = process.env.DAILYOPS_CODEX_HOME || join(homedir(), ".codex")): UsageReading {
+export function readCodex(home = process.env.WINTOOLKIT_CODEX_HOME || join(homedir(), ".codex")): UsageReading {
 	const at = Date.now(), root = join(home, "sessions");
 	if (!existsSync(root)) return { ok: false, at, reason: "nodata", message: "No ChatGPT/Codex usage found on this PC yet" };
 	const files: { path: string; mtime: number }[] = [];

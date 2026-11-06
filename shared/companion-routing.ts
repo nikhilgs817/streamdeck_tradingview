@@ -4,9 +4,9 @@ import { join } from "node:path";
 import { createServer, createConnection, type Socket, type Server } from "node:net";
 
 export function companionPipe(): string {
-	if (process.env.DAILYOPS_COMPANION_PIPE) return process.env.DAILYOPS_COMPANION_PIPE;
+	if (process.env.WINTOOLKIT_COMPANION_PIPE) return process.env.WINTOOLKIT_COMPANION_PIPE;
 	const user = createHash("sha256").update(homedir()).digest("hex").slice(0, 16);
-	return process.platform === "win32" ? `\\\\.\\pipe\\windows-daily-toolkit-${user}-v1` : join(tmpdir(), `windows-daily-toolkit-${user}-v1.sock`);
+	return process.platform === "win32" ? `\\\\.\\pipe\\windows-toolkit-${user}-v1` : join(tmpdir(), `windows-toolkit-${user}-v1.sock`);
 }
 
 type Message = Record<string, unknown>;
@@ -175,7 +175,7 @@ export function connectCompanion(options: { uuid: string; enabled: () => boolean
 	return {
 		get connected() { return ready; },
 		request(command: "show" | "back", device?: string): Promise<void> {
-			if (!ready || !socket) return Promise.reject(new Error("Start Windows Daily Toolkit for automatic profile switching"));
+			if (!ready || !socket) return Promise.reject(new Error("Start Windows Toolkit for automatic profile switching"));
 			return new Promise((resolve, reject) => {
 				const id = ++sequence;
 				const timer = setTimeout(() => { pending.delete(id); reject(new Error("Profile request timed out")); }, 12000);

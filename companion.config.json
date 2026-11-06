@@ -336,9 +336,9 @@
       "hidden": false
     }
   ],
-  "uuid": "com.dailyops.tradingview.v1",
+  "uuid": "com.windowstoolkit.tradingview",
   "name": "TradingView Controls",
-  "version": "1.0.1.0",
+  "version": "2.0.0.0",
   "profile": "profiles/tradingview",
   "selector": {
     "names": [

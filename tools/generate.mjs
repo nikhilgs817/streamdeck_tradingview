@@ -12,13 +12,13 @@ for(const command of config.commands){
 }
 writePluginIcons(sd,{glyph:config.glyph,theme:config.theme,style:config.design?'app':'vivid'});
 copyUi(sd);
-put('ui/companion.js','window.DailyOpsCompanion='+JSON.stringify(config)+';\nwindow.DailyOpsDesign=window.DailyOpsCompanion.design;window.DailyOpsIcons.setAppDesign(window.DailyOpsDesign);\nfor(const c of window.DailyOpsCompanion.commands) window.DailyOpsIcons.PRESET_ICONS["comp-"+c.id]={glyph:c.glyph,theme:c.theme,label:c.name,style:window.DailyOpsDesign?"app":"vivid"};\n');
+put('ui/companion.js','window.WinToolkitCompanion='+JSON.stringify(config)+';\nwindow.WinToolkitDesign=window.WinToolkitCompanion.design;window.WinToolkitIcons.setAppDesign(window.WinToolkitDesign);\nfor(const c of window.WinToolkitCompanion.commands) window.WinToolkitIcons.PRESET_ICONS["comp-"+c.id]={glyph:c.glyph,theme:c.theme,label:c.name,style:window.WinToolkitDesign?"app":"vivid"};\n');
 put('companion-config.json',JSON.stringify(config,null,2));
 const layout=config.layout||Object.fromEntries(config.commands.slice(0,15).map((c,i)=>[`${i%5},${Math.floor(i/5)}`,c.id]));
 buildProfile({sd,uuid:config.uuid,pluginName:config.name,version:config.version,profile:config.profile,title:config.app,layout,pages:config.pages,actions:config.commands.map(c=>[c.id,c.name,c.description])});
 put('manifest.json',JSON.stringify({
- $schema:'https://schemas.elgato.com/streamdeck/plugins/manifest.json',Name:config.name,Version:config.version,Author:'Daily Ops',UUID:config.uuid,
- Description:`Unofficial ${config.app} controls for Windows. Animated keys, configurable shortcuts and automatic switching with Windows Daily Toolkit.`,
+ $schema:'https://schemas.elgato.com/streamdeck/plugins/manifest.json',Name:config.name,Version:config.version,Author:'Windows Toolkit',UUID:config.uuid,
+ Description:`Unofficial ${config.app} controls for Windows. Animated keys, configurable shortcuts and automatic switching with Windows Toolkit.`,
  Icon:'imgs/plugin/icon',Category:config.name,CategoryIcon:'imgs/plugin/category',CodePath:'bin/plugin.js',PropertyInspectorPath:'ui/pi.html',SDKVersion:2,
  Software:{MinimumVersion:'7.1'},OS:[{Platform:'windows',MinimumVersion:'10'}],Nodejs:{Version:'20'},
  ApplicationsToMonitor:{windows:config.selector.names.map(n=>n+'.exe')},

@@ -1,6 +1,6 @@
 # TradingView Controls
 
-Unofficial Windows companion for Elgato Stream Deck and the TradingView desktop app. Version 1.0.1.0.
+Unofficial Windows companion for Elgato Stream Deck and the TradingView desktop app. Version 2.0.0.0.
 
 Three pages, 15 keys each, built around TradingView's own keyboard shortcuts:
 
@@ -36,7 +36,7 @@ Other keys in this trading app send a single shortcut and never Enter. The only 
 
 ## Install in three steps
 
-1. Download **TradingViewControls-Installer-1.0.1.0.zip** from [Releases](https://github.com/nikhilgs817/streamdeck_tradingview/releases/latest).
+1. Download **TradingViewControls-Installer-2.0.0.0.zip** from [Releases](https://github.com/nikhilgs817/streamdeck_tradingview/releases/latest).
 2. Right-click the ZIP, choose **Extract All**, and open the extracted folder.
 3. Double-click **Install-TradingViewControls.cmd**. Stream Deck restarts automatically.
 
@@ -44,7 +44,7 @@ No Git, Node.js or build commands are required. The installer verifies files, ba
 
 ## Use
 
-Requires Windows 10/11 64-bit, Stream Deck 7.1+ and the TradingView desktop app. Choose the **TradingView** profile in Stream Deck (or let Windows Daily Toolkit switch to it). **Back** returns to your main keys. Select any key to change its shortcut or look.
+Requires Windows 10/11 64-bit, Stream Deck 7.1+ and the TradingView desktop app. Choose the **TradingView** profile in Stream Deck (or let Windows Toolkit switch to it). **Back** returns to your main keys. Select any key to change its shortcut or look.
 
 ## Appearance
 

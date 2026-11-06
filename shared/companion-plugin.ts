@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import streamDeck, { action, type KeyDownEvent, type KeyUpEvent, type WillAppearEvent, type WillDisappearEvent } from "@elgato/streamdeck";
-import { DailyAction, REGISTRY, globals, type Appearance } from "./base.js";
+import { ToolkitAction, REGISTRY, globals, type Appearance } from "./base.js";
 import { PRESET_ICONS, setAppDesign } from "./icons.js";
 import { connectCompanion, type CompanionConnection } from "./companion-routing.js";
 import { controlApp } from "./app-control.js";
@@ -74,7 +74,7 @@ export async function bootCompanion(config: CompanionConfig): Promise<void> {
 	const localShow = async (device: string) => { await streamDeck.profiles.switchToProfile(device, config.profile, 0); };
 	const localBack = async (device: string) => { await streamDeck.profiles.switchToProfile(device); streamDeck.logger.info(`back on ${device}`); };
 	const show = async (device: string) => { if (bridge?.connected) await bridge.request("show", device); else await localShow(device); };
-	// Devices where Windows Daily Toolkit handed the deck to this plugin. If the user opened these keys some other way
+	// Devices where Windows Toolkit handed the deck to this plugin. If the user opened these keys some other way
 	// (picked the profile in Stream Deck, a native Switch Profile key…), Back must not wait for the Toolkit: it simply
 	// returns to the previous profile.
 	const viaToolkit = new Set<string>();
@@ -94,7 +94,7 @@ export async function bootCompanion(config: CompanionConfig): Promise<void> {
 	for (const definition of config.commands) {
 		PRESET_ICONS["comp-" + definition.id] = { glyph: definition.glyph, theme: definition.theme, label: definition.name, style: config.design ? "app" : "vivid" };
 		@action({ UUID: config.uuid + "." + definition.id })
-		class AppKey extends DailyAction<KeySettings> {
+		class AppKey extends ToolkitAction<KeySettings> {
 			protected readonly kind = "comp-" + definition.id;
 			#held = new Set<string>();
 			#busy = new Set<string>();

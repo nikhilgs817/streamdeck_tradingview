@@ -6,7 +6,7 @@ import { existsSync } from "node:fs";
 
 /** Plugin source folder → generated .sdPlugin directory. */
 export const PLUGINS = {
-	tradingview: "com.dailyops.tradingview.v1.sdPlugin",
+	tradingview: "com.windowstoolkit.tradingview.sdPlugin",
 };
 
 const only = process.env.PLUGIN;
@@ -34,7 +34,7 @@ for (const [name, sd] of Object.entries(PLUGINS)) {
 	if (existsSync(`${dir}/ui`)) {
 		configs.push({
 			input: "shared/icons.js",
-			output: { file: `${dir}/ui/icons.js`, format: "iife", name: "DailyOpsIcons" },
+			output: { file: `${dir}/ui/icons.js`, format: "iife", name: "WinToolkitIcons" },
 			plugins: [!watching && terser()],
 		});
 	}

@@ -10,7 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Automation;
 
-public static class DailyOpsLogin {
+public static class WinToolkitLogin {
 	[DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
 	[DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
 	[DllImport("kernel32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)] static extern int GetApplicationUserModelId(IntPtr process, ref uint length, StringBuilder id);
@@ -137,10 +137,10 @@ ${LOGIN_NATIVE}
 	if (-not $expectedExe -and -not $expectedId) { [Console]::Out.WriteLine('identity'); exit }
 	$protected = [string]$payload.protectedPassword
 	if (-not $protected.StartsWith('dpapi:v1:')) { throw 'format' }
-	$bytes = [Security.Cryptography.ProtectedData]::Unprotect([Convert]::FromBase64String($protected.Substring(9)), $utf8.GetBytes('com.dailyops.v2.credentials.v1|' + [string]$payload.binding), [Security.Cryptography.DataProtectionScope]::CurrentUser)
+	$bytes = [Security.Cryptography.ProtectedData]::Unprotect([Convert]::FromBase64String($protected.Substring(9)), $utf8.GetBytes('com.windowstoolkit.core.credentials.v1|' + [string]$payload.binding), [Security.Cryptography.DataProtectionScope]::CurrentUser)
 	$password = $utf8.GetString($bytes)
 	[Array]::Clear($bytes, 0, $bytes.Length)
-	[Console]::Out.WriteLine([DailyOpsLogin]::Fill($expectedExe, $expectedId, [string]$payload.username, $password, 12000))
+	[Console]::Out.WriteLine([WinToolkitLogin]::Fill($expectedExe, $expectedId, [string]$payload.username, $password, 12000))
 } catch { [Console]::Out.WriteLine('unavailable') }
 finally { $password = $null; $payload = $null }
 `;
