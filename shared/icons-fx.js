@@ -146,7 +146,8 @@ export const FX = {
 export function fxArt(glyph, ink, phase = 0, data = {}, moving = true) {
 	const p0 = ((phase % 1) + 1) % 1;
 	P = moving ? (p0 * 2) % 1 : 0; D = data || {};
-	let art = FX[glyph](ink);
+	// Glyphs also get the phase and data, so plugins can add their own FX glyphs (e.g. DevOps Deck).
+	let art = FX[glyph](ink, P, D);
 	P = 0; D = {};
 	if (data && data.off) art = `<g opacity=".38">${art}</g><path d="M30 104L114 20" ${st(W, 8)}/>`;
 	if (data && data.hold > 0) {
