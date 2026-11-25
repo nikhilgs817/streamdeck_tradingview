@@ -743,6 +743,7 @@ while ($true) {
 	try {
 		switch ($p[1]) {
 			'ping' { $msg = 'pong' }
+			'anim' { try { Add-Type -AssemblyName PresentationFramework -ErrorAction Stop; $msg = if ([System.Windows.SystemParameters]::ClientAreaAnimation) { '1' } else { '0' } } catch { $msg = '1' } }
 			'secret-protect' { if ($a[0].Length -gt 4096) { throw 'Password too long.' }; $msg = Protect-Password $a[0] $a[1] }
 			'secret-unprotect' { if ($a[0].Length -gt 32768) { throw 'Password data too long.' }; $msg = Unprotect-Password $a[0] $a[1] }
 			'warm' { $null = Get-Apps $true; $msg = [string]$script:apps.Count + ' apps'; try { Ensure-Native } catch { $msg += ' (native helpers unavailable: ' + $_.Exception.Message + ')' } }

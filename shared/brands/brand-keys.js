@@ -618,6 +618,8 @@ function palette(style, colours, brand) {
 	const b = BRANDS[brand] || BRANDS.claude;
 	const [c1, c2, c3] = colours && colours.length >= 3 ? colours : b.colours;
 	switch (style) {
+		case "glass": return { bgTop: "#1D2029", bgBottom: "#0A0B10", edge: "#2B2F3A", ink: "#ECEFF5", muted: mix(c1, "#0A0B10", 0.35), faint: mix(c1, "#0A0B10", 0.72), clay: mix(c1, "#ffffff", 0.12), clayLight: mix(c1, "#ffffff", 0.5), surface: "#171A22", cut: "#0A0B10", glow: c1, font: "glass", accent: c1 };
+		case "mono": return { bgTop: "#17181D", bgBottom: "#0D0E11", edge: "#24262C", ink: "#EEF0F4", muted: "#8A919E", faint: "#2E3138", clay: "#C9CED8", clayLight: "#E6E9EF", surface: "#16171B", cut: "#0D0E11", glow: c1, font: "mono", accent: c1 };
 		case "light": return { ...b.light, glow: b.light.clay, font: "app" };
 		case "vivid": return { bgTop: c1, bgBottom: c2, edge: mix(c1, "#ffffff", 0.35), ink: "#FFFFFF", muted: mix(c2, "#ffffff", 0.62), faint: mix(c2, "#ffffff", 0.3), clay: c3, clayLight: mix(c3, "#ffffff", 0.35), surface: mix(c2, "#000000", 0.12), cut: c2, glow: "#ffffff", font: "sans" };
 		case "neon": return { bgTop: "#2A2E40", bgBottom: "#0B0D14", edge: mix(c1, "#0B0D14", 0.55), ink: c1, muted: mix(c1, "#0B0D14", 0.45), faint: mix(c1, "#0B0D14", 0.75), clay: mix(c2, "#ffffff", 0.2), clayLight: mix(c1, "#ffffff", 0.55), surface: "#1A1C26", cut: "#0B0D14", glow: c1, font: "sans" };
@@ -631,35 +633,62 @@ let uid = 0;
  * Full 144×144 key. `phase` 0..1 drives the icon animation; labels stay still.
  * style: "app" (Claude Dark, default) · "light" (Claude Light) · "neon" (Colourful) · "vivid" · "pro".
  */
-export function brandKeySvg({ brand = "claude", glyph, label = "", phase = 0, setup = false, animate = true, style = "app", colours }) {
+export function brandKeySvg({ brand = "claude", glyph, label = "", phase = 0, setup = false, animate = true, style = "app", colours, motionStyle = "loop", labelCase = "auto", glow = "normal", press }) {
 	const p = animate ? ((phase % 1) + 1) % 1 : 0;
+	const tileMoves = animate && motionStyle !== "icon", iconMoves = animate && motionStyle !== "glow";
+	const g = { subtle: 0.55, normal: 1, bold: 1.6 }[glow] ?? 1;
 	const pal = palette(style, colours, brand);
 	Object.assign(T, pal);
 	const u = "cl" + (++uid).toString(36);
 	const draw = ART[glyph] || ART.newchat;
+	const quiet = pal.font === "glass" || pal.font === "mono";
 	const serif = pal.font === "app"; // native looks: title-case Segoe UI Bold with the accent rule
-	const raw = String(label).slice(0, 14);
-	const text = esc(serif ? raw : raw.toUpperCase());
-	const fs = serif ? (raw.length > 11 ? 16.5 : raw.length > 8 ? 18.5 : 21) : Math.min(19, Math.floor(130 / Math.max(1, raw.length * 0.64)) + 1);
+	const caseMode = labelCase === "auto" ? (serif || quiet ? "title" : "upper") : labelCase;
+	let raw = String(label).trim();
+	if (raw.length > 18) raw = raw.slice(0, 17).trimEnd() + "…";
+	const shown = caseMode === "upper" ? raw.toUpperCase() : raw;
+	const text = esc(shown);
+	const fit = (size, em, min = 10.5) => Math.max(min, Math.min(size, Math.floor((128 / Math.max(1, shown.length * em)) * 2) / 2));
+	const fs = quiet ? fit(pal.font === "mono" ? 15 : 16.5, caseMode === "upper" ? 0.68 : 0.56) : serif ? fit(21, 0.6, 12) : fit(19, 0.64);
 	// Livelier motion: icon details run two loops per 6 s cycle, the icon bobs, the glow breathes and an accent light travels round the frame.
 	const p2 = (p * 2) % 1;
-	const glowOp = (style === "vivid" ? 0.14 : style === "neon" ? 0.2 : 0.1) + (animate ? 0.22 * wave(p2) : 0);
+	const glowOp = Math.min(0.9, ((style === "vivid" ? 0.14 : style === "neon" ? 0.2 : style === "glass" ? 0.24 : style === "mono" ? 0 : 0.1) + (tileMoves && style !== "mono" ? 0.22 * wave(p2) : 0)) * g);
 	let body = `<defs><linearGradient id="${u}b" x1="0" y1="0" x2="${style === "vivid" ? 1 : 0}" y2="1"><stop offset="0" stop-color="${pal.bgTop}"/><stop offset="1" stop-color="${pal.bgBottom}"/></linearGradient>` +
 		`<radialGradient id="${u}g" cx=".5" cy=".38" r=".55"><stop offset="0" stop-color="${pal.glow}" stop-opacity="${f(glowOp)}"/><stop offset="1" stop-color="${pal.glow}" stop-opacity="0"/></radialGradient>` +
-		(pal.bar ? `<linearGradient id="${u}r" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${pal.bar[0]}"/><stop offset="1" stop-color="${pal.bar[1]}"/></linearGradient>` : "") + `</defs>` +
+		(pal.bar ? `<linearGradient id="${u}r" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${pal.bar[0]}"/><stop offset="1" stop-color="${pal.bar[1]}"/></linearGradient>` : "") +
+		(quiet ? `<linearGradient id="${u}rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="${pal.font === "mono" ? .12 : .3}"/><stop offset=".35" stop-color="#fff" stop-opacity=".06"/><stop offset="1" stop-color="#fff" stop-opacity=".04"/></linearGradient><clipPath id="${u}c"><rect x="3" y="3" width="138" height="138" rx="20"/></clipPath><linearGradient id="${u}s"><stop stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".10"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>` : "") + `</defs>` +
 		`<rect width="144" height="144" fill="url(#${u}b)"/><rect width="144" height="144" fill="url(#${u}g)"/>`;
 	if (style === "vivid") body += `<circle cx="128" cy="12" r="50" fill="#fff" opacity=".10"/><circle cx="10" cy="140" r="44" fill="#000" opacity=".10"/>`;
-	body += `<rect x="1.5" y="1.5" width="141" height="141" rx="14" fill="none" stroke="${pal.edge}" stroke-width="2"/>`;
-	if (pal.bar) body += `<rect width="144" height="6" fill="url(#${u}r)"/>`;
-	// Travelling sheen on the frame for the colour looks.
-	if (animate) body += `<rect x="2.5" y="2.5" width="139" height="139" rx="13" fill="none" stroke="${style === "app" || style === "light" ? pal.clay : "#fff"}" stroke-width="2.4" stroke-opacity="${style === "app" || style === "light" ? 0.85 : 0.5}" stroke-linecap="round" stroke-dasharray="46 510" stroke-dashoffset="${f(-p * 556)}"/>`;
-	const bob = animate ? -4 * Math.sin(p2 * TAU) : 0, grow = animate ? 1 + 0.05 * wave(p2) : 1;
-	body += `<g data-glyph="${esc(glyph)}" transform="translate(72 ${f(56 + bob)}) scale(${f(grow)}) translate(-72 -56)">${draw(p2)}</g>`;
+	if (quiet) {
+		if (pal.font === "glass") body += `<ellipse cx="72" cy="-4" rx="96" ry="50" fill="#fff" opacity=".045"/>`;
+		body += `<rect x="6.5" y="6.5" width="131" height="131" rx="22" fill="none" stroke="url(#${u}rim)" stroke-width="1.4"/>`;
+		if (pal.font === "mono") {
+			const k = tileMoves ? wave(p) : 0.6;
+			body += `<circle cx="118" cy="26" r="${f(4 + k * 1.2)}" fill="${pal.accent}" opacity="${f(0.55 + 0.45 * k)}"/>` + (tileMoves ? `<circle cx="118" cy="26" r="${f(5 + k * 7)}" fill="none" stroke="${pal.accent}" stroke-width="1" opacity="${f(0.45 * (1 - k))}"/>` : "");
+		} else if (tileMoves) {
+			if (p < 0.28) body += `<g clip-path="url(#${u}c)"><rect x="${f(-90 + (p / 0.28) * 330)}" y="-40" width="42" height="150" transform="rotate(28 72 72)" fill="url(#${u}s)"/></g>`;
+			body += `<rect x="6.5" y="6.5" width="131" height="131" rx="22" fill="none" stroke="${pal.accent}" stroke-width="1.6" stroke-linecap="round" stroke-opacity="${f(0.35 + wave(p) * 0.3)}" stroke-dasharray="26 470" stroke-dashoffset="${f(-p * 496)}"/>`;
+		}
+	} else {
+		body += `<rect x="1.5" y="1.5" width="141" height="141" rx="14" fill="none" stroke="${pal.edge}" stroke-width="2"/>`;
+		if (pal.bar) body += `<rect width="144" height="6" fill="url(#${u}r)"/>`;
+		// Travelling sheen on the frame for the colour looks.
+		if (tileMoves) body += `<rect x="2.5" y="2.5" width="139" height="139" rx="13" fill="none" stroke="${style === "app" || style === "light" ? pal.clay : "#fff"}" stroke-width="2.4" stroke-opacity="${style === "app" || style === "light" ? 0.85 : 0.5}" stroke-linecap="round" stroke-dasharray="46 510" stroke-dashoffset="${f(-p * 556)}"/>`;
+	}
+	const bob = iconMoves ? (quiet ? -1.6 : -4) * Math.sin(p2 * TAU) : 0, grow = iconMoves ? 1 + (quiet ? 0.02 : 0.05) * wave(p2) : 1;
+	const base = quiet ? 0.86 : 1;
+	body += `<g data-glyph="${esc(glyph)}" transform="translate(72 ${f((quiet ? 54 : 56) + bob)}) scale(${f(grow * base)}) translate(-72 -56)">${draw(iconMoves ? p2 : 0)}</g>`;
 	if (setup) body += `<rect x="46" y="92" width="52" height="15" rx="7.5" fill="${pal.clay}"/><text x="72" y="103" text-anchor="middle" font-family="Segoe UI, Arial" font-size="9.5" font-weight="700" letter-spacing="1" fill="${pal.cut}">SETUP</text>`;
-	if (text) body += (serif ? `<path d="M${f(72 - (10 + 12 * (animate ? wave(p2) : 0.5)))} 110h${f(2 * (10 + 12 * (animate ? wave(p2) : 0.5)))}" stroke="${pal.clay}" stroke-width="2.5" stroke-linecap="round" opacity=".9"/>` +
+	if (text && quiet) body += (pal.font === "glass" ? `<path d="M65 108h14" stroke="${pal.accent}" stroke-width="2.2" stroke-linecap="round" opacity=".85"/>` : "") +
+		`<text x="72" y="127" text-anchor="middle" font-family="Segoe UI Variable Display, ${LABEL_FONT}" font-size="${fs}" font-weight="600" letter-spacing="${caseMode === "upper" ? 1.2 : 0.4}" fill="${pal.font === "mono" ? "#B9C0CC" : "#ECEFF5"}">${text}</text>`;
+	else if (text) body += (serif ? `<path d="M${f(72 - (10 + 12 * (tileMoves ? wave(p2) : 0.5)))} 110h${f(2 * (10 + 12 * (tileMoves ? wave(p2) : 0.5)))}" stroke="${pal.clay}" stroke-width="2.5" stroke-linecap="round" opacity=".9"/>` +
 		`<text x="72" y="132" text-anchor="middle" font-family="${LABEL_FONT}" font-size="${fs}" font-weight="800" fill="${pal.ink}" stroke="${pal.ink}" stroke-width=".55" stroke-linejoin="round">${text}</text>` :
-		`<text x="72" y="132.5" text-anchor="middle" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="${fs}" font-weight="800" letter-spacing="${raw.length > 9 ? 0.3 : 1}" fill="#000" opacity=".35">${text}</text>` +
-		`<text x="72" y="131" text-anchor="middle" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="${fs}" font-weight="800" letter-spacing="${raw.length > 9 ? 0.3 : 1}" fill="${style === "neon" ? "#ffffff" : pal.ink}" stroke="${style === "neon" ? "#ffffff" : pal.ink}" stroke-width=".5" stroke-linejoin="round">${text}</text>`);
+		`<text x="72" y="132.5" text-anchor="middle" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="${fs}" font-weight="800" letter-spacing="${shown.length > 9 ? 0.3 : 1}" fill="#000" opacity=".35">${text}</text>` +
+		`<text x="72" y="131" text-anchor="middle" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="${fs}" font-weight="800" letter-spacing="${shown.length > 9 ? 0.3 : 1}" fill="${style === "neon" ? "#ffffff" : pal.ink}" stroke="${style === "neon" ? "#ffffff" : pal.ink}" stroke-width=".5" stroke-linejoin="round">${text}</text>`);
+	if (press > 0 && press < 1) {
+		const e = 1 - Math.pow(1 - press, 3), fade = 1 - press;
+		body += `<rect width="144" height="144" rx="${quiet ? 22 : 14}" fill="#fff" opacity="${f(0.16 * fade)}"/><circle cx="72" cy="58" r="${f(18 + e * 70)}" fill="none" stroke="${pal.accent || pal.clay}" stroke-width="${f(6 * fade + 1)}" opacity="${f(0.75 * fade)}"/>`;
+	}
 	Object.assign(T, CLAUDE_TOKENS);
 	return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144"><g data-app-design="${esc(brand)}" data-style="${style}">${body}</g></svg>`;
 }
@@ -691,13 +720,15 @@ export function meterKeySvg({ brand = "claude", style = "app", colours, pct, cap
 	const col = !ok ? pal.muted : v >= 85 ? "#FF4D5E" : v >= 60 ? "#F5A524" : pal.clay;
 	const R = 38, C = 2 * Math.PI * R, cx = 72, cy = 56;
 	const msg = { setup: "SETUP", signin: "SIGN IN", blocked: "BLOCKED", nodata: "NO DATA", error: "ERROR", loading: "…" }[state] || "";
-	const text = esc(String(label).slice(0, 14));
-	const fs = text.length > 11 ? 16.5 : text.length > 8 ? 18.5 : 21;
+	let raw = String(label).trim(); if (raw.length > 18) raw = raw.slice(0, 17).trimEnd() + "…";
+	const text = esc(raw);
+	const fs = Math.max(11, Math.min(21, Math.floor((128 / Math.max(1, raw.length * 0.6)) * 2) / 2));
+	const quiet = pal.font === "glass" || pal.font === "mono";
 	const glow = animate ? 0.12 + 0.2 * wave(p2) : 0.12;
 	let body = `<defs><linearGradient id="${u}b" x1="0" y1="0" x2="${style === "vivid" ? 1 : 0}" y2="1"><stop offset="0" stop-color="${pal.bgTop}"/><stop offset="1" stop-color="${pal.bgBottom}"/></linearGradient>` +
 		`<radialGradient id="${u}g" cx=".5" cy=".4" r=".55"><stop offset="0" stop-color="${col}" stop-opacity="${f(glow)}"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></radialGradient></defs>` +
 		`<rect width="144" height="144" fill="url(#${u}b)"/><rect width="144" height="144" fill="url(#${u}g)"/>` +
-		`<rect x="1.5" y="1.5" width="141" height="141" rx="14" fill="none" stroke="${pal.edge}" stroke-width="2"/>`;
+		(quiet ? `<rect x="6.5" y="6.5" width="131" height="131" rx="22" fill="none" stroke="#fff" stroke-opacity="${pal.font === "mono" ? .1 : .16}" stroke-width="1.4"/>` : `<rect x="1.5" y="1.5" width="141" height="141" rx="14" fill="none" stroke="${pal.edge}" stroke-width="2"/>`);
 	if (pal.bar) body += `<rect width="144" height="6" fill="${pal.bar[0]}"/>`;
 	body += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${pal.faint}" stroke-width="9"/>`;
 	if (ok && v > 0) body += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round" stroke-dasharray="${f(C * v / 100)} ${f(C)}" transform="rotate(-90 ${cx} ${cy})"/>`;

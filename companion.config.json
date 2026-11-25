@@ -338,7 +338,7 @@
   ],
   "uuid": "com.windowstoolkit.tradingview",
   "name": "TradingView Controls",
-  "version": "2.0.0.0",
+  "version": "2.1.0.0",
   "profile": "profiles/tradingview",
   "selector": {
     "names": [
