@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import streamDeck, { action, type KeyDownEvent, type KeyUpEvent, type WillAppearEvent, type WillDisappearEvent } from "@elgato/streamdeck";
-import { ToolkitAction, REGISTRY, globals, type Appearance } from "./base.js";
+import { ToolkitAction, REGISTRY, globals, setDefaultStyle, setGlobals, repaintEverything, watchWindowsMotion, type Appearance } from "./base.js";
 import { PRESET_ICONS, setAppDesign } from "./icons.js";
 import { connectCompanion, type CompanionConnection } from "./companion-routing.js";
 import { controlApp } from "./app-control.js";
@@ -65,6 +65,8 @@ function watchMeters(): void {
 
 export async function bootCompanion(config: CompanionConfig): Promise<void> {
 	setAppDesign(config.design);
+	// App plugins use the quiet Glass look by default; every other look stays one click away in the key's settings.
+	setDefaultStyle("glass");
 	streamDeck.logger.setLevel("info");
 	const log = streamDeck.logger.createScope("companion");
 	const trading = new TradingInput(config.selector);
@@ -92,7 +94,7 @@ export async function bootCompanion(config: CompanionConfig): Promise<void> {
 		await localBack(device);
 	};
 	for (const definition of config.commands) {
-		PRESET_ICONS["comp-" + definition.id] = { glyph: definition.glyph, theme: definition.theme, label: definition.name, style: config.design ? "app" : "vivid" };
+		PRESET_ICONS["comp-" + definition.id] = { glyph: definition.glyph, theme: definition.theme, label: definition.name, style: "glass" };
 		@action({ UUID: config.uuid + "." + definition.id })
 		class AppKey extends ToolkitAction<KeySettings> {
 			protected readonly kind = "comp-" + definition.id;
@@ -110,12 +112,12 @@ export async function bootCompanion(config: CompanionConfig): Promise<void> {
 					if (!readings.has(m.source) || Date.now() - readings.get(m.source)!.at > 30_000) void refreshUsage(m.source);
 				}
 			}
-			override imageNow(s: KeySettings): { image: string } {
+			override imageNow(s: KeySettings, id?: string): { image: string } {
 				const m = definition.meter;
-				if (!m || (typeof s.iconImage === "string" && s.iconImage.startsWith("data:image/"))) return super.imageNow(s);
+				if (!m || (typeof s.iconImage === "string" && s.iconImage.startsWith("data:image/"))) return super.imageNow(s, id);
 				const look = this.look(s), motion = this.motion(s), r = readings.get(m.source), w = r?.ok ? r.windows[m.window] : undefined;
-				const style = look.style === "real" ? "app" : look.style;
-				return { image: svgDataUri(meterKeySvg({ brand: (config.design?.id as string) || "claude", style, colours: (THEMES as Record<string, string[]>)[look.theme], pct: w?.pct, caption: m.window === "5h" ? "5-HOUR" : "WEEKLY", until: w ? untilText(w.resetsAt) : "", state: !r ? "loading" : r.ok ? (w ? "ok" : "nodata") : r.reason, label: look.label, phase: motion?.phase ?? 0, animate: !!motion })) };
+				const style = look.style === "real" ? "glass" : look.style;
+				return { image: svgDataUri(meterKeySvg({ brand: (config.design?.id as string) || "claude", style, colours: look.colours ?? (THEMES as Record<string, string[]>)[look.theme], pct: w?.pct, caption: m.window === "5h" ? "5-HOUR" : "WEEKLY", until: w ? untilText(w.resetsAt) : "", state: !r ? "loading" : r.ok ? (w ? "ok" : "nodata") : r.reason, label: look.label, phase: motion?.phase ?? 0, animate: !!motion })) };
 			}
 			override async onKeyUp(ev: KeyUpEvent<KeySettings>): Promise<void> { this.#release(ev.action.id); }
 			protected override dynamicLabel(settings: KeySettings): string | undefined {
@@ -199,7 +201,7 @@ export async function bootCompanion(config: CompanionConfig): Promise<void> {
 		const d = ev.action.device.id; visible.set(d, Math.max(0, (visible.get(d) || 1) - 1));
 		setTimeout(() => { if (!visible.get(d)) bridge?.setVisible(d, false); }, 300);
 	});
-	streamDeck.settings.onDidReceiveGlobalSettings((ev) => { Object.assign(globals, ev.settings); bridge?.update(); });
+	streamDeck.settings.onDidReceiveGlobalSettings((ev) => { setGlobals(ev.settings); bridge?.update(); void repaintEverything(); });
 	streamDeck.ui.onSendToPlugin<{ event?: string; settings?: KeySettings }>(async (ev) => {
 		if (streamDeck.ui.action?.id !== ev.action.id) return;
 		if (ev.payload?.event === "meterSaveKey" || ev.payload?.event === "meterClearKey") {
@@ -231,6 +233,7 @@ export async function bootCompanion(config: CompanionConfig): Promise<void> {
 	try { Object.assign(globals, await streamDeck.settings.getGlobalSettings()); } catch { log.warn("Using default focus settings"); }
 	bridge = connectCompanion({ uuid: config.uuid, enabled: () => globals.autoFollow !== false, invoke: async (command, device) => { if (command === "show") { await localShow(device); viaToolkit.add(device); } else { viaToolkit.delete(device); await localBack(device); } } });
 	for (const [device, count] of visible) bridge.setVisible(device, count > 0);
+	watchWindowsMotion();
 
 // A fresh receipt lets the installer verify this connected SDK process without reading settings.
 try {

@@ -1,6 +1,6 @@
 # TradingView Controls
 
-Unofficial Windows companion for Elgato Stream Deck and the TradingView desktop app. Version 2.0.0.0.
+Unofficial Windows companion for Elgato Stream Deck and the TradingView desktop app. Version 2.1.0.0.
 
 Three pages, 15 keys each, built around TradingView's own keyboard shortcuts:
 
@@ -36,7 +36,7 @@ Other keys in this trading app send a single shortcut and never Enter. The only 
 
 ## Install in three steps
 
-1. Download **TradingViewControls-Installer-2.0.0.0.zip** from [Releases](https://github.com/nikhilgs817/streamdeck_tradingview/releases/latest).
+1. Download **TradingViewControls-Installer-2.1.0.0.zip** from [Releases](https://github.com/nikhilgs817/streamdeck_tradingview/releases/latest).
 2. Right-click the ZIP, choose **Extract All**, and open the extracted folder.
 3. Double-click **Install-TradingViewControls.cmd**. Stream Deck restarts automatically.
 
@@ -50,7 +50,19 @@ Requires Windows 10/11 64-bit, Stream Deck 7.1+ and the TradingView desktop app.
 
 ![Styles](docs/images/styles.png)
 
-**TradingView Dark** is the default: TradingView navy keys, the TradingView blue accent, bull green and bear red candles, bold Segoe UI labels and an animated icon on every key (the trend line draws itself, Fib levels sweep, the price line slides, the camera flashes, the bell rings, the interval bar fills). Buy is TradingView blue and Sell red in every style. TradingView Light, Colourful, Vivid and Pro share the icons. Decorative candles and lines are animation only, never live market data.
+**Glass** is the default: frosted dark keys, a soft rim light, Title Case labels and an animated icon on every key (the trend line draws itself, Fib levels sweep, the price line slides, the camera flashes, the bell rings, the interval bar fills). Pick another look for one key, or press **Use this look on all keys** in any key's settings to restyle the whole deck.
+
+| Style | Look |
+|---|---|
+| **Glass** (default) | Frosted dark glass, a quiet glow and Title Case labels |
+| **TradingView Dark** | TradingView navy keys, the TradingView blue accent, bull green and bear red candles, bold Segoe UI labels |
+| **TradingView Light** | Light chart-paper keys with the same icons |
+| **Vivid** | White icons on a bright gradient |
+| **Neon** | Coloured icons with a glowing edge on dark glass (formerly Colourful) |
+| **Mono** | Monochrome icons with a single colour dot |
+| **Pro** | Restrained slate keys with a thin accent strip |
+
+Under **Look** you can also pick any of 40+ colour themes or two colours of your own, Full, Glow only, Icon only or Still animation at four speeds, glow strength, a press ripple, the label case and your own label (up to 18 letters) or picture. Keys go still while Windows **Animation effects** is off. Buy is TradingView blue and Sell red in every style. Decorative candles and lines are animation only, never live market data. The design is shared with [Windows Toolkit](https://github.com/nikhilgs817/windows_toolkit).
 
 ## Build and verify
 

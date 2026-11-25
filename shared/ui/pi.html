@@ -6,6 +6,7 @@
 	<link rel="stylesheet" href="pi.css" />
 	<script src="icons.js"></script>
 	<script src="companion.js"></script>
+	<script src="features.js"></script>
 	<script src="pi.js"></script>
 </head>
 <body>
@@ -237,7 +238,7 @@
 			<label for="sleep">Sleep the monitor</label>
 			<div class="grow"><input type="checkbox" id="sleep" checked /> <span class="hint">When turning off, also put the monitor itself to sleep (DDC/CI), and wake it when turning on. Monitors without DDC/CI are just disconnected.</span></div>
 		</div>
-		<div class="hint pad">The key shows what a press will do: <b style="color:#ff7a7a">red TURN OFF</b> while the screen is on, <b style="color:#5ee08f">green TURN ON</b> while it is off. Off = disconnected in Windows (windows move to your other screens). The main display can be turned off when another screen is active. The last active screen stays on.</div>
+		<div class="hint pad" id="monitorOnOffHint">The key shows what a press will do: <b style="color:#ff7a7a">red TURN OFF</b> while the screen is on, <b style="color:#5ee08f">green TURN ON</b> while it is off. Off = disconnected in Windows (windows move to your other screens). The main display can be turned off when another screen is active. The last active screen stays on.</div>
 	</section>
 
 	<!-- Apps folder / Back -->
@@ -275,6 +276,13 @@
 		<div class="row" id="companionFollowRow" hidden><label for="companionFollow">Follow focus</label><div class="grow"><input id="companionFollow" type="checkbox" checked /> <span class="hint">Automatically show these keys when this app is in front. Requires Windows Toolkit 2.6 or later.</span></div></div>
 		<div class="row"><label></label><button id="companionShow" type="button">Show app keys</button><button id="companionBack" type="button" hidden>Return to main</button></div>
 	</section>
+	<!-- Windows Toolkit feature keys: fields come from features.js -->
+	<section id="sec-feature" hidden>
+		<h2 id="featureTitle">Key</h2>
+		<div class="hint pad" id="featureTip"></div>
+		<div id="featureFields"></div>
+	</section>
+
 	<section id="sec-keys" hidden>
 		<h2>Keyboard</h2>
 		<div class="hint pad" id="keysHint"></div>
@@ -326,12 +334,14 @@
 					<label>Style</label>
 					<div class="grow">
 						<div class="seg" id="styleSeg">
+							<button data-style="real" id="styleReal">App icon</button>
 							<button data-style="app" id="styleApp" hidden>App theme</button>
 							<button data-style="light" id="styleLight" hidden>Light</button>
-							<button data-style="real" id="styleReal">App icon</button>
-							<button data-style="pro" id="stylePro">Pro</button>
-							<button data-style="neon">Colourful</button>
+							<button data-style="glass">Glass</button>
 							<button data-style="vivid">Vivid</button>
+							<button data-style="neon">Neon</button>
+							<button data-style="mono">Mono</button>
+							<button data-style="pro" id="stylePro">Pro</button>
 						</div>
 						<div class="hint" id="styleHint"></div>
 					</div>
@@ -339,7 +349,8 @@
 				<div class="row tight">
 					<label for="iconLabel">Label</label>
 					<div class="grow inline">
-						<input id="iconLabel" maxlength="14" placeholder="" />
+						<input id="iconLabel" maxlength="18" placeholder="" />
+						<select id="labelCase" aria-label="Label letters"><option value="auto">Auto case</option><option value="title">Title Case</option><option value="upper">UPPER CASE</option></select>
 						<label class="check"><input type="checkbox" id="hideLabel" /> Hide</label>
 					</div>
 				</div>
@@ -352,14 +363,42 @@
 					</div>
 				</div>
 				<div class="row tight" id="motionRow" hidden>
-					<label for="animate">Animation</label>
-					<div class="grow"><label class="check"><input type="checkbox" id="animate" checked /> Gentle loop</label></div>
+					<label for="motionStyle">Animation</label>
+					<div class="grow inline">
+						<select id="motionStyle" aria-label="What moves"><option value="loop">Full</option><option value="glow">Glow only</option><option value="icon">Icon only</option><option value="still">Still</option></select>
+						<select id="animSpeed" aria-label="Animation speed"><option value="slow">Slow</option><option value="calm">Calm</option><option value="normal">Normal</option><option value="fast">Fast</option></select>
+						<input type="checkbox" id="animate" hidden />
+					</div>
+				</div>
+				<div class="row tight" id="glowRow">
+					<label for="glow">Glow</label>
+					<div class="grow inline">
+						<select id="glow"><option value="subtle">Subtle</option><option value="normal">Normal</option><option value="bold">Bold</option></select>
+						<label class="check"><input type="checkbox" id="pressFx" checked /> Ripple when pressed</label>
+					</div>
+				</div>
+				<div class="row tight" id="allKeysRow">
+					<label></label>
+					<div class="grow">
+						<button id="lookToAll" type="button">Use this look on all keys</button>
+						<label class="check"><input type="checkbox" id="followWindowsMotion" checked /> Keep keys still when Windows animations are off</label>
+						<div class="hint" id="lookToAllHint">Copies the style, animation, glow, label case and ripple to every key of this plugin. Colours, icons and labels stay as they are. App icon keys keep their app's icon.</div>
+					</div>
 				</div>
 			</div>
 		</div>
 		<div id="artPickers">
 			<div class="sub">Colour</div>
 			<div id="themes" class="themes"></div>
+			<div class="row tight" id="customColourRow">
+				<label>Custom</label>
+				<div class="grow inline">
+					<input type="color" id="colour1" value="#C9A46A" aria-label="Main colour" />
+					<input type="color" id="colour2" value="#5B3A16" aria-label="Second colour" />
+					<button id="useColours" type="button">Use these colours</button>
+					<button id="clearColours" type="button" class="link" hidden>Back to theme</button>
+				</div>
+			</div>
 			<div class="sub">Icon</div>
 			<div id="glyphs" class="glyphs"></div>
 		</div>

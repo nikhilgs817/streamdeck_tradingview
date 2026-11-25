@@ -16,6 +16,8 @@
 	/** Windows Toolkit keys that hand the deck over to a companion plugin's keys (VS Code key, or any app key set to VS Code). */
 	const VSCODE_RE = /visual studio code|\bvs ?code\b|vscodium|\bcode( - insiders)?\.exe\b|Microsoft\.VisualStudioCode/i;
 	const MONITOR_KINDS = ["monitorcontrol"];
+	/** Keys that pick one physical monitor (Monitor Control, Rotate Display). */
+	const SCREEN_KINDS = ["monitorcontrol", "rotate"];
 	let motionTimer = null;
 	let screenList = null; // [{ key, name, on, num, primary }]
 
@@ -77,8 +79,8 @@
 		ws.onopen = () => {
 			ws.send(JSON.stringify({ event: registerEvent, uuid: piUuid }));
 			if (APP_KINDS.includes(kind)) requestApps();
-			if (MONITOR_KINDS.includes(kind)) sendToPlugin({ event: "getScreens" });
-			if (LAUNCH_KINDS.includes(kind) || kind === "vsc-back" || window.WinToolkitCompanion) ws.send(JSON.stringify({ event: "getGlobalSettings", context: piUuid }));
+			if (SCREEN_KINDS.includes(kind)) sendToPlugin({ event: "getScreens" });
+			ws.send(JSON.stringify({ event: "getGlobalSettings", context: piUuid }));
 		};
 		ws.onmessage = (e) => {
 			let m;
@@ -88,12 +90,14 @@
 				fill();
 			} else if (m.event === "didReceiveGlobalSettings" && m.payload) {
 				globalSettings = m.payload.settings || {};
-				{ const el = $("companionMeterSaved"); if (el) { const at = globalSettings.claudeUsageKeySavedAt ? new Date(globalSettings.claudeUsageKeySavedAt) : null; el.textContent = globalSettings.claudeUsageKey ? "Session key saved" + (at && !isNaN(at) ? " on " + at.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "") + ". If the key shows SIGN IN, press it to open claude.ai and paste a new one." : "No session key saved yet. Press the key to open claude.ai, then paste the sessionKey here."; } }
 				$("monitorOrder").value = globalSettings.monitorOrder === "left" || globalSettings.monitorOrder === "primary" ? globalSettings.monitorOrder : "windows";
+				{ const el = $("companionMeterSaved"); if (el) { const at = globalSettings.claudeUsageKeySavedAt ? new Date(globalSettings.claudeUsageKeySavedAt) : null; el.textContent = globalSettings.claudeUsageKey ? "Session key saved" + (at && !isNaN(at) ? " on " + at.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "") + ". If the key shows SIGN IN, press it to open claude.ai and paste a new one." : "No session key saved yet. Press the key to open claude.ai, then paste the sessionKey here."; } }
 				$("autoFollow").checked = globalSettings.autoFollow !== false;
 				$("companionFollow").checked = globalSettings.autoFollow !== false;
 				$("returnOnClose").checked = globalSettings.returnOnClose !== false;
+				$("followWindowsMotion").checked = globalSettings.followWindowsMotion !== false;
 				if (LAUNCH_KINDS.includes(kind)) requestMonitors();
+				fillLook();
 			} else if (m.event === "sendToPropertyInspector" && m.payload) {
 				onPluginMessage(m.payload);
 			}
@@ -304,9 +308,6 @@
 
 	function build() {
 		const show = (id, on) => ($(id).hidden = !on);
-		show("styleApp", !!window.WinToolkitDesign);
-		show("styleLight", !!(window.WinToolkitDesign && window.WinToolkitDesign.light));
-		if (window.WinToolkitDesign && window.WinToolkitDesign.styleName) $("styleApp").textContent = window.WinToolkitDesign.styleName;
 		const companion = window.WinToolkitCompanion;
 		const definition = companion?.commands?.find((c) => "comp-" + c.id === kind);
 		show("sec-companion", !!definition);
@@ -344,6 +345,7 @@
 			let shortcutTimer;
 			$("companionShortcut").addEventListener("input", () => { clearTimeout(shortcutTimer); shortcutTimer = setTimeout(() => { set("shortcut", $("companionShortcut").value.trim()); save(); }, 350); });
 		}
+		buildFeature(show);
 		const isApp = APP_KINDS.includes(kind);
 		show("sec-app", isApp);
 		show("sec-credentials", kind === "app");
@@ -355,17 +357,40 @@
 		show("sec-shot", kind === "screenshot");
 		show("sec-desktop", kind === "showdesktop");
 		show("motionRow", true);
-		$("animate").addEventListener("change", () => { settings.animate = $("animate").checked; save(); });
-		show("sec-screen", MONITOR_KINDS.includes(kind));
+		$("motionStyle").addEventListener("change", () => {
+			const v = $("motionStyle").value;
+			if (v === "still") { settings.animate = false; delete settings.motionStyle; }
+			else { delete settings.animate; set("motionStyle", v === "loop" ? undefined : v); }
+			lookChanged();
+		});
+		$("animSpeed").addEventListener("change", () => { set("animSpeed", $("animSpeed").value); lookChanged(); });
+		$("labelCase").addEventListener("change", () => { set("labelCase", $("labelCase").value === "auto" ? undefined : $("labelCase").value); lookChanged(); });
+		$("glow").addEventListener("change", () => { set("glow", $("glow").value === "normal" ? undefined : $("glow").value); lookChanged(); });
+		$("pressFx").addEventListener("change", () => { set("pressFx", $("pressFx").checked ? undefined : false); lookChanged(); });
+		$("useColours").addEventListener("click", () => { settings.iconColours = [$("colour1").value, $("colour2").value]; set("iconImage"); save(); fill(); });
+		$("clearColours").addEventListener("click", () => { set("iconColours"); save(); fill(); });
+		$("lookToAll").addEventListener("click", () => {
+			const d = { at: Date.now() };
+			for (const k of LOOK_FIELDS) { const v = lookValue(k); if (v !== undefined && !(k === "iconStyle" && v === "real")) d[k] = v; }
+			globalSettings.lookDefaults = d;
+			settings.lookAt = d.at;
+			saveGlobalSettings();
+			save();
+			$("lookToAllHint").textContent = "Done. Every key of this plugin now uses this look. Change any key afterwards to give it its own.";
+		});
+		$("followWindowsMotion").addEventListener("change", () => { globalSettings.followWindowsMotion = $("followWindowsMotion").checked; saveGlobalSettings(); });
+		show("sec-screen", SCREEN_KINDS.includes(kind));
+		$("sleep").closest(".row").hidden = $("monitorOnOffHint").hidden = !MONITOR_KINDS.includes(kind);
 		show("sec-apps", kind === "appsfolder");
 		show("sec-websites", kind === "websitefolder");
 		$("openWebsites").addEventListener("click", () => sendToPlugin({ event: "openWebsites" }));
 		$("returnMain").addEventListener("click", () => sendToPlugin({ event: "returnMain" }));
 		show("sec-navback", kind === "back");
-		const monitorKey = MONITOR_KINDS.includes(kind);
-		show("styleRow", !monitorKey);
-		show("pictureRow", !monitorKey);
-		show("artPickers", !monitorKey);
+		const monitorKey = SCREEN_KINDS.includes(kind);
+		// Only Monitor Control keeps its meaningful red/green colours; every key gets Label, Picture and Animation.
+		show("styleRow", !MONITOR_KINDS.includes(kind));
+		show("pictureRow", true);
+		show("artPickers", !MONITOR_KINDS.includes(kind));
 		if (kind === "screenshot") {
 			$("shotHold").addEventListener("change", () => { set("holdSeconds", $("shotHold").value); save(); fill(); });
 			let st;
@@ -468,12 +493,15 @@
 		// Look
 		const realCapable = REAL_CAPABLE.includes(kind);
 		$("styleReal").hidden = !realCapable;
-		$("stylePro").hidden = kind.indexOf("vsc-") !== 0 && !window.WinToolkitCompanion;
-		$("styleReal").textContent = kind === "folder" || kind === "downloads" ? "Folder icon" : kind === "website" ? "Site icon" : "App icon";
+				$("styleReal").textContent = kind === "folder" || kind === "downloads" ? "Folder icon" : kind === "website" ? "Site icon" : "App icon";
+		show("styleApp", !!window.WinToolkitDesign);
+		show("styleLight", !!(window.WinToolkitDesign && window.WinToolkitDesign.light));
+		if (window.WinToolkitDesign && window.WinToolkitDesign.styleName) $("styleApp").textContent = window.WinToolkitDesign.styleName;
 		for (const b of document.querySelectorAll("#styleSeg button")) {
 			b.addEventListener("click", () => {
 				set("iconStyle", b.dataset.style);
 				set("iconImage");
+				settings.lookAt = Date.now();
 				save();
 				fill();
 			});
@@ -484,7 +512,7 @@
 			sendToPlugin({ event: "refreshIcon", settings });
 		});
 		$("resetLook").addEventListener("click", () => {
-			for (const k of ["iconStyle", "iconGlyph", "iconTheme", "iconLabel", "hideLabel", "iconImage", "animate"]) delete settings[k];
+			for (const k of ["iconStyle", "iconGlyph", "iconTheme", "iconLabel", "hideLabel", "iconImage", "iconColours", "lookAt"].concat(LOOK_FIELDS)) delete settings[k];
 			save();
 			fill();
 		});
@@ -507,6 +535,7 @@
 			b.style.background = "linear-gradient(135deg," + c[0] + "," + c[1] + ")";
 			b.addEventListener("click", () => {
 				set("iconTheme", name);
+				set("iconColours");
 				set("iconImage");
 				save();
 				fill();
@@ -523,7 +552,7 @@
 			b.dataset.glyph = g;
 			b.addEventListener("click", () => {
 				set("iconGlyph", g);
-				if (currentStyle() === "real") set("iconStyle", "neon");
+				if (currentStyle() === "real") { set("iconStyle", defaultStyle()); settings.lookAt = Date.now(); }
 				set("iconImage");
 				save();
 				fill();
@@ -532,11 +561,76 @@
 		}
 	}
 
+	/* ------------------------------------------------------------ Windows Toolkit feature keys */
+
+	function featureDef() { return (window.WinToolkitFeatures?.features || []).find((f) => f.id === kind); }
+	function buildFeature(show) {
+		const def = featureDef();
+		show("sec-feature", !!def);
+		if (!def) return;
+		$("featureTitle").textContent = def.name;
+		$("featureTip").textContent = def.tip + (def.hold ? " A tap only shows a warning, so it can't fire by accident." : "");
+		const box = $("featureFields");
+		box.textContent = "";
+		for (const field of def.fields || []) {
+			const row = document.createElement("div");
+			row.className = "row";
+			const label = document.createElement("label");
+			label.textContent = field.label;
+			const id = "ff-" + field.key;
+			label.htmlFor = id;
+			let input;
+			if (field.type === "select") {
+				input = document.createElement("select");
+				for (const [value, text] of field.options) { const o = document.createElement("option"); o.value = value; o.textContent = text; input.appendChild(o); }
+			} else if (field.type === "textarea") {
+				input = document.createElement("textarea"); input.rows = 4;
+			} else if (field.type === "check") {
+				input = document.createElement("input"); input.type = "checkbox";
+			} else {
+				input = document.createElement("input");
+				input.type = field.type === "number" ? "number" : "text";
+				if (field.min !== undefined) input.min = field.min;
+				if (field.max !== undefined) input.max = field.max;
+			}
+			input.id = id;
+			input.className = field.type === "check" ? "" : "grow";
+			if (field.placeholder) input.placeholder = field.placeholder;
+			else if (field.def !== undefined && field.type !== "check" && field.type !== "select") input.placeholder = String(field.def);
+			let timer;
+			const commit = () => {
+				const value = field.type === "check" ? input.checked : field.type === "number" ? (input.value === "" ? "" : Number(input.value)) : input.value.trim() === "" ? "" : input.value;
+				set(field.key, value); save();
+			};
+			input.addEventListener(field.type === "select" || field.type === "check" ? "change" : "input", () => { clearTimeout(timer); timer = setTimeout(commit, field.type === "select" || field.type === "check" ? 0 : 400); });
+			row.appendChild(label); row.appendChild(input);
+			box.appendChild(row);
+			if (field.hint || field.type === "file" || field.type === "folder") {
+				const hint = document.createElement("div");
+				hint.className = "hint pad";
+				hint.textContent = field.hint || (field.type === "folder" ? "Paste the full folder path (in File Explorer: click the address bar, copy). %USERPROFILE% works." : "Paste the full file path (Shift + right-click the file › Copy as path).");
+				box.appendChild(hint);
+			}
+		}
+	}
+	function fillFeature() {
+		const def = featureDef();
+		if (!def) return;
+		for (const field of def.fields || []) {
+			const el = $("ff-" + field.key);
+			if (!el || document.activeElement === el) continue;
+			const v = settings[field.key];
+			if (field.type === "check") el.checked = v === undefined ? field.def === true : v === true;
+			else el.value = v === undefined || v === null ? (field.type === "select" && field.def !== undefined ? String(field.def) : "") : String(v);
+		}
+	}
+
 	/* ------------------------------------------------------------ fill from settings */
 
 	function fill() {
 		if (!domReady || !kind) return;
 		const s = settings;
+		fillFeature();
 		const setVal = (id, v) => { const el = $(id); if (document.activeElement !== el) el.value = v == null ? "" : v; };
 		setVal("target", s.target);
 		setVal("args", s.args);
@@ -546,8 +640,8 @@
 		setVal("iconLabel", s.iconLabel);
 		setVal("shortcut", s.shortcut);
 		setVal("companionShortcut", s.shortcut);
-		setVal("companionDestination", s.destination);
 		setVal("command", s.command);
+		setVal("companionDestination", s.destination);
 		if (kind === "app") {
 			if (!credentialDirty) setVal("credentialUsername", s.credentialUsername);
 			$("credentialPassword").placeholder = s.credentialPassword ? "••••••••" : "Enter a password";
@@ -579,14 +673,14 @@
 			$("shotHold").value = String(s.holdSeconds || 1);
 			$("shotHoldLabel").textContent = String(s.holdSeconds || 1) + " s";
 		}
-		if (MONITOR_KINDS.includes(kind)) {
+		if (SCREEN_KINDS.includes(kind)) {
 			$("sleep").checked = s.sleep !== false;
 			renderScreens();
 		}
 		$("sec-handoff").hidden = !handoffName();
 		if (handoffName()) $("handoffName").textContent = handoffName();
 		$("removeImage").hidden = !s.iconImage;
-		$("animate").checked = s.animate !== false;
+		fillLook();
 		$("iconLabel").placeholder = defaultLabel();
 		renderLook();
 	}
@@ -599,7 +693,7 @@
 	}
 
 	function renderScreens() {
-		if (!MONITOR_KINDS.includes(kind)) return;
+		if (!SCREEN_KINDS.includes(kind)) return;
 		const sel = $("screenPick");
 		const list = screenList || [];
 		const opts = [["", "Choose a monitor…", false]];
@@ -620,9 +714,12 @@
 		const st = $("screenStatus");
 		st.className = "hint";
 		if (screenList === null) { st.textContent = "Looking for screens…"; return; }
+		const rotating = kind === "rotate";
+		if (!settings.screenKey && rotating) { st.textContent = "Choose the monitor this key should turn between landscape and portrait. Add another Rotate Display key for a different screen."; return; }
 		if (!settings.screenKey) { st.textContent = "Choose the monitor this key should turn off and on. Add another Monitor Control key to control a different screen."; return; }
 		const target = list.find((x) => x.key === settings.screenKey);
 		if (!target) { st.className = "hint err"; st.textContent = "The selected monitor isn't connected. Check its cable, or choose a monitor above."; return; }
+		if (rotating) { st.textContent = target.on ? (target.name || "This screen") + " turns between landscape and portrait when you press the key." : (target.name || "This screen") + " is off. Turn it on before rotating it."; if (!target.on) st.className = "hint err"; return; }
 		st.textContent = (target.name || "This screen") + " is " + (target.on ? "on — the key shows red TURN OFF." : "off — the key shows green TURN ON.");
 		if (target.primary) st.textContent += " When turned off, another active screen becomes the main display.";
 	}
@@ -637,6 +734,7 @@
 			if (s.appName) return s.appName;
 			if (kind === "app" && s.target) return s.target.trim().split(/[\\/]/).pop().replace(/\.(exe|lnk|bat|cmd)$/i, "");
 		}
+		if (kind === "rotate" && s.screenKey) return "Monitor " + monitorN();
 		if (kind === "vsc-shortcut" && s.shortcut) return s.shortcut.trim();
 		if (kind === "vsc-command" && s.command) return s.command.trim().replace(/^.*?:\s*/, "");
 		if ((kind === "folder" && s.folderNameLabel !== false || kind === "downloads" && s.folderNameLabel === true || kind === "vsc-project") && s.folderPath) {
@@ -655,10 +753,53 @@
 		return dynamicLabel() || (p ? p.label : "");
 	}
 
+	/* ------------------------------------------------------------ look settings (mirrors lookValue in base.ts) */
+
+	const LOOK_FIELDS = ["iconStyle", "animate", "animSpeed", "motionStyle", "glow", "labelCase", "pressFx"];
+	const STYLES = ["real", "glass", "neon", "vivid", "mono", "pro", "app", "light"];
+	/** Windows Toolkit keys default to Vivid; the app companion plugins default to Glass. */
+	function defaultStyle() { return window.WinToolkitCompanion || kind.indexOf("vsc-") === 0 ? "glass" : "vivid"; }
+	function lookValue(k) {
+		const d = globalSettings.lookDefaults || {};
+		const own = !d.at || (settings.lookAt || 0) >= d.at;
+		return own && settings[k] !== undefined ? settings[k] : d[k];
+	}
+	function lookChanged() { settings.lookAt = Date.now(); save(); fillLook(); }
+	function saveGlobalSettings() { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ event: "setGlobalSettings", context: piUuid, payload: globalSettings })); }
+	function styleOk(st) {
+		if (!STYLES.includes(st)) return false;
+		if (st === "real") return REAL_CAPABLE.includes(kind);
+		if (st === "app") return !!window.WinToolkitDesign;
+		if (st === "light") return !!(window.WinToolkitDesign && window.WinToolkitDesign.light);
+		return true;
+	}
+	function fillLook() {
+		if (!$("motionStyle")) return;
+		$("motionStyle").value = lookValue("animate") === false ? "still" : ["glow", "icon"].includes(lookValue("motionStyle")) ? lookValue("motionStyle") : "loop";
+		$("animSpeed").value = SPEEDS[lookValue("animSpeed")] ? lookValue("animSpeed") : "calm";
+		$("animSpeed").disabled = lookValue("animate") === false;
+		$("labelCase").value = ["title", "upper"].includes(lookValue("labelCase")) ? lookValue("labelCase") : "auto";
+		$("glow").value = ["subtle", "bold"].includes(lookValue("glow")) ? lookValue("glow") : "normal";
+		$("pressFx").checked = lookValue("pressFx") !== false;
+		const c = customColours();
+		$("clearColours").hidden = !c;
+		if (c) { $("colour1").value = c[0]; $("colour2").value = c[1]; }
+		renderLook();
+	}
+	function customColours() {
+		const c = settings.iconColours, hex = (v) => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
+		return Array.isArray(c) && hex(c[0]) && hex(c[1]) ? c.slice(0, 2) : undefined;
+	}
+
 	function currentStyle() {
-		const st = settings.iconStyle;
-		if (st === "app" || st === "light" || st === "real" || st === "neon" || st === "vivid" || st === "pro") return st === "real" && !REAL_CAPABLE.includes(kind) ? "neon" : st;
-		return I().PRESET_ICONS[kind]?.style || (["app", "website"].includes(kind) ? "real" : kind.indexOf("vsc-") === 0 ? "pro" : "neon");
+		const own = settings.iconStyle, plugin = lookValue("iconStyle");
+		const d = globalSettings.lookDefaults;
+		const ownWins = !d || (settings.lookAt || 0) >= (d.at || 0) || own === plugin;
+		if (styleOk(own) && ownWins) return own;
+		if (REAL_CAPABLE.includes(kind) && ["app", "website"].includes(kind)) return "real";
+		if (styleOk(plugin)) return plugin;
+		const preset = I().PRESET_ICONS[kind]?.style;
+		return styleOk(preset) && preset !== "app" ? preset : defaultStyle();
 	}
 
 	function currentLook() {
@@ -670,6 +811,10 @@
 			theme: s.iconTheme || p.theme,
 			label: s.hideLabel ? "" : (s.iconLabel && s.iconLabel.trim()) || defaultLabel(),
 			style: currentStyle(),
+			colours: customColours(),
+			motionStyle: lookValue("motionStyle"),
+			labelCase: lookValue("labelCase"),
+			glow: lookValue("glow"),
 		};
 	}
 
@@ -681,14 +826,15 @@
 		const hint = $("styleHint");
 		hint.className = "hint";
 		hint.textContent = "";
-		if (look.style === "app") hint.textContent = "Uses " + window.WinToolkitDesign.name + " colours. Choose Colourful, Vivid or Pro to use a custom colour.";
-		$("themes").hidden = look.style === "app";
-		$("themes").previousElementSibling.hidden = look.style === "app";
+		const brandOnly = look.style === "app" && !!window.WinToolkitDesign;
+		if (brandOnly) hint.textContent = "Uses " + window.WinToolkitDesign.name + " colours. Pick Glass, Vivid, Neon, Mono or Pro to choose your own colour.";
+		$("themes").hidden = $("customColourRow").hidden = brandOnly;
+		$("themes").previousElementSibling.hidden = brandOnly;
 		$("refreshIcon").hidden = usingImage || look.style !== "real";
-		if (settings.animate !== false && !motionTimer) motionTimer = setInterval(() => {
+		if (lookValue("animate") !== false && !motionTimer) motionTimer = setInterval(() => {
 			if (!document.hidden) drawPreview();
 		}, 1000 / 12);
-		if (settings.animate === false && motionTimer) { clearInterval(motionTimer); motionTimer = null; }
+		if (lookValue("animate") === false && motionTimer) { clearInterval(motionTimer); motionTimer = null; }
 
 		if (MONITOR_KINDS.includes(kind)) {
 			drawPreview();
@@ -704,7 +850,7 @@
 				drawPreview();
 				if (!realIcon.real) hint.textContent = "No icon found for this app, so it shows the colourful artwork instead.";
 			} else {
-				prev.innerHTML = lib.keySvg(Object.assign({}, look, { style: "neon" }));
+				prev.innerHTML = lib.keySvg(Object.assign({}, look, { style: defaultStyle() }));
 				hint.textContent = "Fetching the icon…";
 				clearTimeout(iconTimer);
 				iconTimer = setTimeout(() => sendToPlugin({ event: "getIcon", settings }), 250);
@@ -714,21 +860,23 @@
 		}
 
 		for (const b of document.querySelectorAll("#styleSeg button")) b.classList.toggle("on", !usingImage && b.dataset.style === look.style);
-		const gridStyle = look.style === "vivid" ? "vivid" : "neon";
+		const gridStyle = ["glass", "neon", "vivid", "mono", "pro"].includes(look.style) ? look.style : defaultStyle();
 		for (const b of document.querySelectorAll(".swatch")) b.classList.toggle("on", !usingImage && b.dataset.theme === look.theme);
 		for (const b of document.querySelectorAll(".glyph")) {
 			b.classList.toggle("on", !usingImage && look.style !== "real" && b.dataset.glyph === look.glyph);
-			const key = look.theme + "/" + gridStyle + "/" + b.dataset.glyph;
+			const key = look.theme + "/" + gridStyle + "/" + (look.colours || []).join() + "/" + b.dataset.glyph;
 			if (b.dataset.rendered !== key) {
-				b.innerHTML = lib.keySvg({ glyph: b.dataset.glyph, theme: look.theme, label: "", style: gridStyle });
+				b.innerHTML = lib.keySvg({ glyph: b.dataset.glyph, theme: look.theme, label: "", style: gridStyle, colours: look.colours });
 				b.dataset.rendered = key;
 			}
 		}
 	}
 
+	const SPEEDS = { slow: 0.5, calm: 0.75, normal: 1, fast: 1.5 };
+	function loopMs() { return Math.round(12000 / (SPEEDS[lookValue("animSpeed")] || SPEEDS.calm)); }
 	function animatedLook(look) {
-		return settings.animate !== false
-			? Object.assign({}, look, { motion: { kind, phase: (Date.now() % 12000) / 12000 } }) : look;
+		return lookValue("animate") !== false
+			? Object.assign({}, look, { motion: { kind, phase: (Date.now() % loopMs()) / loopMs() } }) : look;
 	}
 
 	function drawPreview() {
@@ -737,12 +885,12 @@
 		if (MONITOR_KINDS.includes(kind)) {
 			const selected = screenList && screenList.find((screen) => screen.key === settings.screenKey);
 			const state = !settings.screenKey ? "unconfigured" : !screenList ? "unknown" : !selected ? "missing" : selected.on ? "on" : "off";
-			preview.innerHTML = lib.monitorKeySvg({ n: monitorN(), state, motion, caption: settings.hideLabel ? " " : (settings.iconLabel || "").trim() || (settings.screenKey ? "Monitor " + monitorN() : "Monitor Control") });
+			preview.innerHTML = lib.monitorKeySvg({ n: monitorN(), state, motion, image: settings.iconImage, caption: settings.hideLabel ? " " : (settings.iconLabel || "").trim() || (settings.screenKey ? "Monitor " + monitorN() : "Monitor Control") });
 		} else if (settings.iconImage) {
 			preview.innerHTML = motion ? lib.pictureKeySvg(settings.iconImage, motion) : '<img src="' + settings.iconImage.replace(/"/g, "&quot;") + '">';
 		} else if (look.style === "real") {
 			if (realIcon.token === JSON.stringify(settings) && realIcon.real && realIcon.sourceImage) preview.innerHTML = lib.keySvg(Object.assign({}, animatedLook(look), { image: realIcon.sourceImage }));
-			else preview.innerHTML = lib.keySvg(animatedLook(Object.assign({}, look, { style: "neon" })));
+			else preview.innerHTML = lib.keySvg(animatedLook(Object.assign({}, look, { style: defaultStyle() })));
 		} else preview.innerHTML = lib.keySvg(animatedLook(look));
 	}
 
