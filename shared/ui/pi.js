@@ -3,7 +3,7 @@
 	"use strict";
 
 	// Shared by every plugin in the suite. kind = the action's last UUID segment; VS Code keys are "vsc-*".
-	const PLUGIN_PREFIXES = { "com.windowstoolkit.vscode.": "vsc-", "com.windowstoolkit.core.": "" };
+	const PLUGIN_PREFIXES = { "com.windowstoolkit.vscode.": "vsc-", "com.windowstoolkit.devops.": "dev-", "com.windowstoolkit.core.": "" };
 	const APP_KINDS = ["app"];
 
 	// Keys that have a "real" icon (app / site / folder icon from Windows or the web).
@@ -251,6 +251,7 @@
 
 	function onPluginMessage(p) {
 		if (p.event === "credentials") { receiveCredentials(p); return; }
+		if (p.event === "secretStatus") { const el = $("ffs-" + p.key); if (el) { el.textContent = p.message || ""; el.className = "hint pad" + (p.error ? " err" : ""); } return; }
 		if (p.event === "meterStatus") { const el = $("companionMeterStatus"); if (el) el.textContent = p.message || ""; return; }
 		if (p.event === "autofillResult" && kind === "app") { credentialStatus(p.message || "Autofill finished.", !p.ok); return; }
 		if (p.event === "screens") {
@@ -580,6 +581,21 @@
 			const id = "ff-" + field.key;
 			label.htmlFor = id;
 			let input;
+			if (field.type === "secret") {
+				// Tokens never go into key settings: the plugin encrypts them for this Windows account (DPAPI) and keeps them per server.
+				input = document.createElement("input"); input.type = "password"; input.id = id; input.className = "grow"; input.autocomplete = "off";
+				input.placeholder = field.placeholder || "Paste a token";
+				const saveBtn = document.createElement("button"); saveBtn.type = "button"; saveBtn.textContent = "Save";
+				const clearBtn = document.createElement("button"); clearBtn.type = "button"; clearBtn.textContent = "Clear";
+				const status = document.createElement("div"); status.id = "ffs-" + field.key; status.className = "hint pad";
+				saveBtn.addEventListener("click", () => { const v = input.value.trim(); if (!v) { status.textContent = "Paste the token first."; return; } status.textContent = "Encrypting…"; sendToPlugin({ event: "secretSave", key: field.key, value: v, settings }); input.value = ""; });
+				clearBtn.addEventListener("click", () => { status.textContent = "Removing…"; sendToPlugin({ event: "secretClear", key: field.key, settings }); });
+				row.appendChild(label); row.appendChild(input); row.appendChild(saveBtn); row.appendChild(clearBtn);
+				box.appendChild(row); box.appendChild(status);
+				if (field.hint) { const hint = document.createElement("div"); hint.className = "hint pad"; hint.textContent = field.hint; box.appendChild(hint); }
+				sendToPlugin({ event: "secretInfo", key: field.key, settings });
+				continue;
+			}
 			if (field.type === "select") {
 				input = document.createElement("select");
 				for (const [value, text] of field.options) { const o = document.createElement("option"); o.value = value; o.textContent = text; input.appendChild(o); }
@@ -601,6 +617,8 @@
 			const commit = () => {
 				const value = field.type === "check" ? input.checked : field.type === "number" ? (input.value === "" ? "" : Number(input.value)) : input.value.trim() === "" ? "" : input.value;
 				set(field.key, value); save();
+				// A new server address may have a different saved token: ask the plugin again.
+				for (const f of def.fields || []) if (f.type === "secret") sendToPlugin({ event: "secretInfo", key: f.key, settings });
 			};
 			input.addEventListener(field.type === "select" || field.type === "check" ? "change" : "input", () => { clearTimeout(timer); timer = setTimeout(commit, field.type === "select" || field.type === "check" ? 0 : 400); });
 			row.appendChild(label); row.appendChild(input);
@@ -618,7 +636,7 @@
 		if (!def) return;
 		for (const field of def.fields || []) {
 			const el = $("ff-" + field.key);
-			if (!el || document.activeElement === el) continue;
+			if (!el || document.activeElement === el || field.type === "secret") continue;
 			const v = settings[field.key];
 			if (field.type === "check") el.checked = v === undefined ? field.def === true : v === true;
 			else el.value = v === undefined || v === null ? (field.type === "select" && field.def !== undefined ? String(field.def) : "") : String(v);
